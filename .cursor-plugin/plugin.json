@@ -1,0 +1,20 @@
+{
+	"name": "robowrite",
+	"description": "Create reviewed content briefs and saved Markdown drafts with RoboWrite.",
+	"author": {
+		"name": "M Powered Ventures",
+		"email": "hello@robowrite.ai"
+	},
+	"homepage": "https://www.robowrite.ai",
+	"keywords": [
+		"content",
+		"writing",
+		"brand-voice",
+		"seo",
+		"mcp"
+	],
+	"logo": "assets/robowrite-mark-light.png",
+	"version": "0.1.0",
+	"license": "MIT",
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin"
+}
