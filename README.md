@@ -2,11 +2,11 @@
 
 Turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.1.0 includes Cursor and Claude Code plugin configurations and one shared content workflow skill. Cursor CLI sign-in and account access have been verified. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. Packaged Cursor installation and the complete saved-draft workflow still require verification. Grok Bot support remains under investigation. No plugin library listing or acceptance is claimed.
+Version 0.1.1 includes Cursor and Claude Code plugin configurations and one shared content workflow skill. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Bot support remains under investigation. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
-- Cursor plugin metadata and a remote MCP connection in `mcp.json`.
+- Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json`.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
@@ -25,7 +25,17 @@ claude --plugin-dir .
 
 Open `/mcp`, select the RoboWrite connection, and follow browser sign-in. The local callback uses port 8787; make sure another sign-in process is not using that port. Verify that `/robowrite:robowrite-content-ops` is available. This launch method is documented by [Claude Code](https://code.claude.com/docs/en/plugins#test-your-plugins-locally); Claude Code 2.1.263 sign-in and the read-only account check have been verified; the content workflow still requires verification.
 
-For Cursor, merge the `robowrite` entry from `mcp.json` into your project's `.cursor/mcp.json`, preserving other entries. Copy `skills/robowrite-content-ops/` to that project's `.cursor/skills/`. Enable the server and complete browser sign-in. This uses the verified Cursor CLI configuration path; installing this directory as a packaged Cursor plugin remains a separate pending check. The bundle follows the [Cursor plugin layout](https://cursor.com/docs/reference/plugins).
+For Cursor CLI, load this plugin directory into the project you want to use:
+
+```sh
+cursor-agent --workspace /absolute/path/to/your/project --plugin-dir /absolute/path/to/robowrite-plugin
+```
+
+Open `/mcp list` to find `Robowrite (plugin)` and its authentication status. The `/robowrite-content-ops` skill should also appear in the command menu. Packaged discovery has been verified; completing browser authentication and the account call through this packaged path remains a separate pending check. Only one sign-in process can use the local callback port 8787 at a time.
+
+The Cursor manifest points explicitly to `mcp.json` so Cursor retains its static OAuth client configuration. In the tested Cursor CLI, automatic discovery selected Claude Code's `.mcp.json` first and reported that the auth server does not support dynamic client registration. Keep the client-specific files separate. The bundle follows the [Cursor plugin layout](https://cursor.com/docs/reference/plugins).
+
+The previously verified Cursor project setup is also available: merge the `robowrite` entry from `mcp.json` into your project's `.cursor/mcp.json`, preserving other entries, and copy `skills/robowrite-content-ops/` to that project's `.cursor/skills/`. Enable the server and complete browser sign-in.
 
 Use this first prompt:
 
