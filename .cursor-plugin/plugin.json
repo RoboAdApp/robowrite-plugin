@@ -14,7 +14,8 @@
 		"mcp"
 	],
 	"logo": "assets/robowrite-mark-light.png",
-	"version": "0.1.0",
+	"version": "0.1.1",
+	"mcpServers": "./mcp.json",
 	"license": "MIT",
 	"repository": "https://github.com/RoboAdApp/robowrite-plugin"
 }
