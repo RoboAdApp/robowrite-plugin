@@ -1,8 +1,8 @@
 # RoboWrite
 
-Turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
+Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.1.1 includes Cursor and Claude Code plugin configurations and one shared content workflow skill. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Bot support remains under investigation. No plugin library listing or acceptance is claimed.
+Version 0.2.0 adds inventory and job-recovery guidance and includes Cursor and Claude Code plugin configurations and one shared content workflow skill. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Bot support remains under investigation. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
@@ -48,6 +48,20 @@ Check the returned organization before authorizing content changes. Keep the cli
 The requested scopes are `user:org:read`, `robowrite:content`, and `offline_access`. The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
 
 Publication access is not requested. This connector has no delete tools or billing-management tools. It also has no draft-edit tool, so locally revised text must not be described as a saved RoboWrite revision. The account's allowance and overage settings still apply; OAuth does not set a separate spending limit.
+
+## Find and resume work
+
+This version requires the hosted connector's inventory/recovery tools. After upgrading, refresh the client tool catalog and confirm `list_content`, `list_briefs`, `get_brief`, `get_content`, `list_jobs` and `get_topic_content` are available. If they are missing, report that the hosted deployment has not caught up; do not replace a read with another generation request.
+
+Try these prompts:
+
+> Show me this month's drafts about content briefs for my selected brand, with their titles, saved versions and job status.
+
+> Find my recent failed or unfinished RoboWrite jobs and show any drafts already saved. Do not restart generation.
+
+> Read this draft's saved scoring, sources, assertion provenance and compliance findings.
+
+The tools filter on the server before pagination. Briefs record their originating topic; converted means a brief was created, not that generation succeeded. The latest job attempt and the job that produced a saved version are separate. Property and brief creation require a brand ID, and MCP property creation defaults to draft-only.
 
 ## Content workflow
 
