@@ -2,7 +2,7 @@
 
 Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.2.1 adds Grok Build, Codex, and Official MCP Registry manifests. It does not claim marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Build and ChatGPT/Codex OAuth are not yet verified. No plugin library listing or acceptance is claimed.
+Version 0.2.2 adds a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server now accepts Client ID Metadata Documents, so hosts that support them can sign in without a pre-registered client; dynamic client registration stays off. Grok Build, ChatGPT/Codex, Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
@@ -10,6 +10,7 @@ Version 0.2.1 adds Grok Build, Codex, and Official MCP Registry manifests. It do
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
 - Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
+- Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
@@ -25,6 +26,9 @@ The plugin connects to `https://www.robowrite.ai/api/mcp`. There is no local ser
 | Cursor CLI packaged `--plugin-dir` | Reaches requires-auth | Not verified | Not verified | Not verified |
 | Grok Build | Manifest added | Not verified | Not verified | Not verified |
 | ChatGPT / Codex | Manifest added | Not verified | Not verified | Not verified |
+| Gemini CLI | Manifest added | Not verified | Not verified | Not verified |
+| GitHub Copilot CLI 1.0.61 | Plugin and skill install verified; workspace `.mcp.json` parses | Not verified | Not verified | Not verified |
+| VS Code / Windsurf | Configuration documented | Not verified | Not verified | Not verified |
 
 ## Connect
 
@@ -60,6 +64,47 @@ Grok loads `mcp.grok.json` through `.grok-plugin/plugin.json`. That file is URL-
 
 For Codex CLI, add this repository as a marketplace and install `robowrite`. Codex OAuth against Clerk is not yet verified.
 
+For Gemini CLI:
+
+```sh
+gemini extensions install https://github.com/RoboAdApp/robowrite-plugin
+```
+
+Gemini CLI does not read Client ID Metadata Documents and falls back to dynamic client registration, which this service does not offer. `gemini-extension.json` therefore names the same static public client as Claude Code and Cursor. Gemini CLI only listens on the `/oauth/callback` path, so the redirect is `http://localhost:8787/oauth/callback`. Sign-in is not yet verified on Gemini CLI. Only one sign-in process can use port 8787 at a time.
+
+For GitHub Copilot CLI:
+
+```sh
+copilot plugin install RoboAdApp/robowrite-plugin
+```
+
+Copilot CLI 1.0.61 reads `.claude-plugin/plugin.json` and installs the skill. Run from a checkout of this repository, it also loads `.mcp.json` as a workspace server and maps the static client and callback port, with a notice that the nested `oauth` key is deprecated. Whether an installed plugin exposes its MCP server, and browser sign-in, remain unverified. To add the server directly: `copilot mcp add --transport http robowrite https://www.robowrite.ai/api/mcp`.
+
+For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS Code identifies itself with a Client ID Metadata Document, so no client ID is needed:
+
+```json
+{
+	"servers": {
+		"robowrite": {
+			"type": "http",
+			"url": "https://www.robowrite.ai/api/mcp"
+		}
+	}
+}
+```
+
+For Windsurf, add this to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+	"mcpServers": {
+		"robowrite": {
+			"serverUrl": "https://www.robowrite.ai/api/mcp"
+		}
+	}
+}
+```
+
 Use this first prompt:
 
 > Use RoboWrite to check the connected account and organization. Make only the read-only get_account call. Do not create or change anything.
@@ -76,7 +121,7 @@ This plugin contains no executable, hooks, install scripts, or environment-varia
 | `https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp` | Protected-resource metadata for OAuth discovery. |
 | Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
 
-Scopes requested by the Claude and Cursor configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
+Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
 
 Unauthenticated calls to `/api/mcp` return 401 with an OAuth challenge. That is intentional.
 
@@ -114,12 +159,12 @@ After reviewing the plan, request the draft workflow:
 
 ## Releasing
 
-CI validates every manifest on each pull request: JSON structure, one shared version across `server.json` and the four `plugin.json` files, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
+CI validates every manifest on each pull request: JSON structure, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
 
-To release, bump the version in all five files, merge to `main`, then push a matching tag:
+To release, bump the version in all six files, merge to `main`, then push a matching tag:
 
 ```
-git tag v0.2.2 && git push origin v0.2.2
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
 The release workflow refuses a tag that is not on `main` or does not match the manifests. It then publishes `server.json` to the Official MCP Registry through DNS authentication for `robowrite.ai` and creates the GitHub release. The registry rejects a version it already holds, so every publish needs a new version. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment; its public half is a TXT record on the `robowrite.ai` apex.

@@ -1,0 +1,16 @@
+{
+	"name": "robowrite",
+	"version": "0.2.2",
+	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"mcpServers": {
+		"robowrite": {
+			"httpUrl": "https://www.robowrite.ai/api/mcp",
+			"oauth": {
+				"enabled": true,
+				"clientId": "UDGKiiooDBzdYmDp",
+				"redirectUri": "http://localhost:8787/oauth/callback",
+				"scopes": ["user:org:read", "robowrite:content", "offline_access"]
+			}
+		}
+	}
+}

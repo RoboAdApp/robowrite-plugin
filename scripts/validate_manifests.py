@@ -18,6 +18,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 MCP_URL = "https://www.robowrite.ai/api/mcp"
+# Clients name the remote endpoint differently (Gemini CLI uses `httpUrl`).
+MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 REGISTRY_NAME = "ai.robowrite/mcp"
 REGISTRY_DESCRIPTION_MAX = 100
 
@@ -28,6 +30,7 @@ VERSIONED = [
     ".codex-plugin/plugin.json",
     ".cursor-plugin/plugin.json",
     ".grok-plugin/plugin.json",
+    "gemini-extension.json",
 ]
 
 # JSON files that must parse, whether or not they carry a version.
@@ -74,7 +77,7 @@ def walk(node, relative: str, trail: str = "") -> None:
             if SECRET_KEYS.search(key):
                 fail(f"{relative}: credential-like key `{here}`")
             if (
-                key == "url"
+                key in MCP_URL_KEYS
                 and isinstance(value, str)
                 and value != MCP_URL
                 and (here.startswith("mcpServers.") or "/api/mcp" in value)

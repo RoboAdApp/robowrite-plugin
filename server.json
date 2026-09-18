@@ -3,7 +3,7 @@
 	"name": "ai.robowrite/mcp",
 	"title": "RoboWrite",
 	"description": "Hosted RoboWrite MCP server: recover briefs and drafts, run the reviewed URL-to-Markdown workflow.",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"websiteUrl": "https://www.robowrite.ai",
 	"repository": {
 		"url": "https://github.com/RoboAdApp/robowrite-plugin",
