@@ -1,8 +1,8 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-	"name": "com.robowrite/mcp",
+	"name": "ai.robowrite/mcp",
 	"title": "RoboWrite",
-	"description": "Hosted RoboWrite MCP server for organization-scoped content recovery and the reviewed URL-to-saved-Markdown workflow. Browser OAuth is required. Publication tools are not enabled.",
+	"description": "Hosted RoboWrite MCP server: recover briefs and drafts, run the reviewed URL-to-Markdown workflow.",
 	"version": "0.2.1",
 	"websiteUrl": "https://www.robowrite.ai",
 	"repository": {
