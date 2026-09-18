@@ -10,7 +10,7 @@ Version 0.2.1 adds Grok Build, Codex, and Official MCP Registry manifests. It do
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
 - Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
-- Unpublished Official MCP Registry metadata in `server.json` (`com.robowrite/mcp`). Do not treat this file as a live registry row.
+- Unpublished Official MCP Registry metadata in `server.json` (`ai.robowrite/mcp`). Do not treat this file as a live registry row.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
