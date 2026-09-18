@@ -161,13 +161,13 @@ After reviewing the plan, request the draft workflow:
 
 CI validates every manifest on each pull request: JSON structure, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
 
-To release, bump the version in all six files, merge to `main`, then push a matching tag:
+To release, bump the version in all six files and merge to `main`. Nothing else is needed:
 
-```
-git tag vX.Y.Z && git push origin vX.Y.Z
-```
+1. The release workflow runs on every push to `main` and reads the version from `server.json`.
+2. If `vX.Y.Z` is already tagged, it stops. Merges without a version bump never publish.
+3. Otherwise it publishes `server.json` to the Official MCP Registry through DNS authentication for `robowrite.ai`, confirms the registry serves the new version, then creates the `vX.Y.Z` tag and the GitHub release on that commit.
 
-The release workflow refuses a tag that is not on `main` or does not match the manifests. It then publishes `server.json` to the Official MCP Registry through DNS authentication for `robowrite.ai` and creates the GitHub release. The registry rejects a version it already holds, so every publish needs a new version. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment; its public half is a TXT record on the `robowrite.ai` apex.
+A failed run can be re-run safely: a version already in the registry is not published twice. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment, which only `main` can use; its public half is a TXT record on the `robowrite.ai` apex.
 
 ## License and support
 
