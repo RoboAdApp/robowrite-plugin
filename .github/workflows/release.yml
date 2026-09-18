@@ -61,7 +61,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           found=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}&version=${version}" \
             | jq --arg name "$REGISTRY_NAME" --arg version "$version" \
-              '[.servers[] | select(.server.name == $name and .server.version == $version)] | length')
+              '[(.servers // [])[] | select(.server.name == $name and .server.version == $version)] | length')
           echo "found=${found}" >> "$GITHUB_OUTPUT"
 
       # DNS auth: the matching public key is a TXT record on the robowrite.ai apex.
@@ -81,12 +81,20 @@ jobs:
         run: ./mcp-publisher publish
 
       - name: Verify the registry serves this version
+        env:
+          ALREADY_PUBLISHED: ${{ steps.existing.outputs.found }}
         run: |
           version="${GITHUB_REF_NAME#v}"
+          if [ "$ALREADY_PUBLISHED" != "0" ]; then
+            echo "Registry already has ${version}; skipping latest check so re-runs stay idempotent"
+            echo "Registry already has ${version}" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          latest=""
           for _ in 1 2 3 4 5; do
             latest=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}" \
               | jq -r --arg name "$REGISTRY_NAME" \
-                '.servers[] | select(.server.name == $name and ._meta["io.modelcontextprotocol.registry/official"].isLatest) | .server.version')
+                '(.servers // [])[] | select(.server.name == $name and ._meta["io.modelcontextprotocol.registry/official"].isLatest) | .server.version')
             if [ "$latest" = "$version" ]; then
               echo "Registry latest is ${latest}" >> "$GITHUB_STEP_SUMMARY"
               exit 0

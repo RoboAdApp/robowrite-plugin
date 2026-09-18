@@ -41,7 +41,11 @@ JSON_FILES = VERSIONED + [
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 # Anything that looks like a credential has no place in a public plugin repo.
-SECRET_KEYS = re.compile(r"secret|password|api[_-]?key|private[_-]?key|bearer", re.I)
+SECRET_KEYS = re.compile(
+    r"secret|password|api[_-]?key|private[_-]?key|bearer|"
+    r"(?:access|refresh|session|id|auth)[_-]?token|^token$",
+    re.I,
+)
 
 errors: list[str] = []
 
