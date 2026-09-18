@@ -10,7 +10,7 @@ Version 0.2.1 adds Grok Build, Codex, and Official MCP Registry manifests. It do
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
 - Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
-- Unpublished Official MCP Registry metadata in `server.json` (`ai.robowrite/mcp`). Do not treat this file as a live registry row.
+- Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
@@ -111,6 +111,18 @@ Start with a read-only review:
 After reviewing the plan, request the draft workflow:
 
 > Use my website to propose a brand voice and content brief for my intended audience. Let me review them before you create a draft-only property or start generation. Save the final draft in RoboWrite and show me the stored Markdown.
+
+## Releasing
+
+CI validates every manifest on each pull request: JSON structure, one shared version across `server.json` and the four `plugin.json` files, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
+
+To release, bump the version in all five files, merge to `main`, then push a matching tag:
+
+```
+git tag v0.2.2 && git push origin v0.2.2
+```
+
+The release workflow refuses a tag that is not on `main` or does not match the manifests. It then publishes `server.json` to the Official MCP Registry through DNS authentication for `robowrite.ai` and creates the GitHub release. The registry rejects a version it already holds, so every publish needs a new version. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment; its public half is a TXT record on the `robowrite.ai` apex.
 
 ## License and support
 
