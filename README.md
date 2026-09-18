@@ -2,16 +2,29 @@
 
 Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.2.0 adds inventory and job-recovery guidance and includes Cursor and Claude Code plugin configurations and one shared content workflow skill. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Bot support remains under investigation. No plugin library listing or acceptance is claimed.
+Version 0.2.1 adds Grok Build, Codex, and Official MCP Registry manifests. It does not claim marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. Grok Build and ChatGPT/Codex OAuth are not yet verified. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
-- Claude Code plugin metadata and a remote MCP connection in `.mcp.json`.
+- Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
+- Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
+- Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
+- Unpublished Official MCP Registry metadata in `server.json` (`com.robowrite/mcp`). Do not treat this file as a live registry row.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
 The plugin connects to `https://www.robowrite.ai/api/mcp`. There is no local server to build or npm package to install.
+
+## Verification matrix
+
+| Client | Discovery | Browser sign-in | `get_account` | Saved draft |
+| --- | --- | --- | --- | --- |
+| Claude Code 2.1.263 via `--plugin-dir` | Verified | Verified | Verified | Not verified |
+| Cursor CLI project `.cursor/mcp.json` | Verified | Verified | Verified | Not verified |
+| Cursor CLI packaged `--plugin-dir` | Reaches requires-auth | Not verified | Not verified | Not verified |
+| Grok Build | Manifest added | Not verified | Not verified | Not verified |
+| ChatGPT / Codex | Manifest added | Not verified | Not verified | Not verified |
 
 ## Connect
 
@@ -28,7 +41,7 @@ Open `/mcp`, select the RoboWrite connection, and follow browser sign-in. The lo
 For Cursor CLI, load this plugin directory into the project you want to use:
 
 ```sh
-cursor-agent --workspace /absolute/path/to/your/project --plugin-dir /absolute/path/to/robowrite-plugin
+cursor-agent --workspace /absolute/path/to/your-project --plugin-dir /absolute/path/to/robowrite-plugin
 ```
 
 Open `/mcp list` to find `Robowrite (plugin)` and its authentication status. The `/robowrite-content-ops` skill should also appear in the command menu. Packaged discovery has been verified; completing browser authentication and the account call through this packaged path remains a separate pending check. Only one sign-in process can use the local callback port 8787 at a time.
@@ -37,15 +50,39 @@ The Cursor manifest points explicitly to `mcp.json` so Cursor retains its static
 
 The previously verified Cursor project setup is also available: merge the `robowrite` entry from `mcp.json` into your project's `.cursor/mcp.json`, preserving other entries, and copy `skills/robowrite-content-ops/` to that project's `.cursor/skills/`. Enable the server and complete browser sign-in.
 
+For Grok Build, from this plugin directory:
+
+```sh
+grok plugin install --trust .
+```
+
+Grok loads `mcp.grok.json` through `.grok-plugin/plugin.json`. That file is URL-only so Grok can run its own OAuth discovery. It does not embed the Claude/Cursor static client ID or callback port 8787. Hosted sign-in on Grok is not yet verified; if the auth server rejects dynamic registration, record that on the auth tracking issue rather than adding a static client here.
+
+For Codex CLI, add this repository as a marketplace and install `robowrite`. Codex OAuth against Clerk is not yet verified.
+
 Use this first prompt:
 
 > Use RoboWrite to check the connected account and organization. Make only the read-only get_account call. Do not create or change anything.
 
 Check the returned organization before authorizing content changes. Keep the client's normal tool approval controls enabled. Credentials belong in browser sign-in, never in chat or these files. Reconnect to change organizations or recover from an expired or revoked grant.
 
+## Security and network
+
+This plugin contains no executable, hooks, install scripts, or environment-variable credentials.
+
+| Endpoint | Why |
+| --- | --- |
+| `https://www.robowrite.ai/api/mcp` | Hosted Streamable HTTP MCP. Every tool call goes here. |
+| `https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp` | Protected-resource metadata for OAuth discovery. |
+| Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
+
+Scopes requested by the Claude and Cursor configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
+
+Unauthenticated calls to `/api/mcp` return 401 with an OAuth challenge. That is intentional.
+
 ## Access and usage
 
-The requested scopes are `user:org:read`, `robowrite:content`, and `offline_access`. The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
+The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
 
 Publication access is not requested. This connector has no delete tools or billing-management tools. It also has no draft-edit tool, so locally revised text must not be described as a saved RoboWrite revision. The account's allowance and overage settings still apply; OAuth does not set a separate spending limit.
 

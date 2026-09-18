@@ -1,0 +1,15 @@
+{
+	"name": "robowrite",
+	"version": "0.2.1",
+	"description": "Connect Grok to RoboWrite to inspect the signed-in organization, recover briefs and drafts, and run the reviewed content workflow through the hosted MCP server.",
+	"author": {
+		"name": "M Powered Ventures",
+		"email": "hello@robowrite.ai"
+	},
+	"homepage": "https://www.robowrite.ai",
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
+	"license": "MIT",
+	"keywords": ["robowrite", "robowrite.ai", "roboad"],
+	"logo": "assets/robowrite-mark-light.png",
+	"mcpServers": "./mcp.grok.json"
+}
