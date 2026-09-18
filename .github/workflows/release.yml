@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: release
   cancel-in-progress: false
@@ -62,6 +66,10 @@ jobs:
           found=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}&version=${version}" \
             | jq --arg name "$REGISTRY_NAME" --arg version "$version" \
               '[(.servers // [])[] | select(.server.name == $name and .server.version == $version)] | length')
+          if ! [[ "$found" =~ ^[0-9]+$ ]]; then
+            echo "::error::registry version lookup did not return a count (got '${found}')"
+            exit 1
+          fi
           echo "found=${found}" >> "$GITHUB_OUTPUT"
 
       # DNS auth: the matching public key is a TXT record on the robowrite.ai apex.
@@ -85,7 +93,11 @@ jobs:
           ALREADY_PUBLISHED: ${{ steps.existing.outputs.found }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          if [ "$ALREADY_PUBLISHED" != "0" ]; then
+          if ! [[ "$ALREADY_PUBLISHED" =~ ^[0-9]+$ ]]; then
+            echo "::error::registry version lookup did not return a count"
+            exit 1
+          fi
+          if [ "$ALREADY_PUBLISHED" -ne 0 ]; then
             echo "Registry already has ${version}; skipping latest check so re-runs stay idempotent"
             echo "Registry already has ${version}" >> "$GITHUB_STEP_SUMMARY"
             exit 0
