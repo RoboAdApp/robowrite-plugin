@@ -1,0 +1,115 @@
+name: Release
+
+# Push a vX.Y.Z tag after the version bump lands on main. The workflow checks
+# that every manifest carries that version, publishes server.json to the
+# Official MCP Registry, and creates the GitHub release.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  MCP_PUBLISHER_VERSION: v1.8.1
+  REGISTRY_DOMAIN: robowrite.ai
+  REGISTRY_NAME: ai.robowrite/mcp
+
+jobs:
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Tag must be on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Manifests must match the tag
+        run: python3 scripts/validate_manifests.py --tag "$GITHUB_REF_NAME"
+
+  publish-registry:
+    name: Publish to MCP Registry
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: mcp-registry
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate
+
+      - name: Skip if this version is already in the registry
+        id: existing
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          found=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}&version=${version}" \
+            | jq --arg name "$REGISTRY_NAME" --arg version "$version" \
+              '[.servers[] | select(.server.name == $name and .server.version == $version)] | length')
+          echo "found=${found}" >> "$GITHUB_OUTPUT"
+
+      # DNS auth: the matching public key is a TXT record on the robowrite.ai apex.
+      - name: Log in with the domain key
+        if: steps.existing.outputs.found == '0'
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MCP_PRIVATE_KEY" ]; then
+            echo "::error::MCP_REGISTRY_PRIVATE_KEY is not set on the mcp-registry environment"
+            exit 1
+          fi
+          ./mcp-publisher login dns --domain "$REGISTRY_DOMAIN" --private-key "$MCP_PRIVATE_KEY"
+
+      - name: Publish
+        if: steps.existing.outputs.found == '0'
+        run: ./mcp-publisher publish
+
+      - name: Verify the registry serves this version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for _ in 1 2 3 4 5; do
+            latest=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}" \
+              | jq -r --arg name "$REGISTRY_NAME" \
+                '.servers[] | select(.server.name == $name and ._meta["io.modelcontextprotocol.registry/official"].isLatest) | .server.version')
+            if [ "$latest" = "$version" ]; then
+              echo "Registry latest is ${latest}" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::registry latest is '${latest}', expected ${version}"
+          exit 1
+
+  github-release:
+    name: GitHub release
+    needs: publish-registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Create the release if it does not exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists"
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+          fi
