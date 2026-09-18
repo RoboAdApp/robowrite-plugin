@@ -73,7 +73,12 @@ def walk(node, relative: str, trail: str = "") -> None:
             here = f"{trail}.{key}" if trail else key
             if SECRET_KEYS.search(key):
                 fail(f"{relative}: credential-like key `{here}`")
-            if key == "url" and isinstance(value, str) and "/api/mcp" in value and value != MCP_URL:
+            if (
+                key == "url"
+                and isinstance(value, str)
+                and value != MCP_URL
+                and (here.startswith("mcpServers.") or "/api/mcp" in value)
+            ):
                 fail(f"{relative}: `{here}` is {value}, expected {MCP_URL}")
             walk(value, relative, here)
     elif isinstance(node, list):
@@ -83,8 +88,11 @@ def walk(node, relative: str, trail: str = "") -> None:
 
 def check_references(relative: str, manifest: dict) -> None:
     """Relative paths named by a plugin manifest must exist."""
-    for key in ("mcpServers", "logo", "skills"):
-        value = manifest.get(key)
+    references = [(key, manifest.get(key)) for key in ("mcpServers", "logo", "skills")]
+    interface = manifest.get("interface")
+    if isinstance(interface, dict):
+        references.append(("interface.logo", interface.get("logo")))
+    for key, value in references:
         if isinstance(value, str) and not value.startswith(("http://", "https://")):
             if not (ROOT / value).exists():
                 fail(f"{relative}: `{key}` points at missing path {value}")

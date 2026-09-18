@@ -65,6 +65,32 @@ class RejectCredentialKeys(unittest.TestCase):
         )
         self.assertEqual(errors, [])
 
+    def test_rejects_mcp_server_url_that_is_not_the_hosted_endpoint(self) -> None:
+        errors = walk_errors(
+            {"mcpServers": {"robowrite": {"url": "https://evil.example/other"}}}
+        )
+        self.assertTrue(
+            any("https://evil.example/other" in message and "expected" in message for message in errors),
+            errors,
+        )
+
+    def test_allows_unrelated_url_fields(self) -> None:
+        errors = walk_errors(
+            {
+                "author": {"url": "https://www.robowrite.ai"},
+                "repository": {"url": "https://github.com/RoboAdApp/robowrite-plugin"},
+            }
+        )
+        self.assertEqual(errors, [])
+
+    def test_rejects_missing_nested_interface_logo(self) -> None:
+        vm.errors.clear()
+        vm.check_references(
+            ".codex-plugin/plugin.json",
+            {"interface": {"logo": "./missing-codex-logo.png"}},
+        )
+        self.assertTrue(any("interface.logo" in message for message in vm.errors), vm.errors)
+
 
 class CurrentRepoContract(unittest.TestCase):
     def test_shipped_manifests_pass(self) -> None:
