@@ -1,0 +1,32 @@
+{
+	"name": "robowrite",
+	"version": "0.2.1",
+	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"author": {
+		"name": "M Powered Ventures",
+		"email": "hello@robowrite.ai",
+		"url": "https://www.robowrite.ai"
+	},
+	"homepage": "https://www.robowrite.ai",
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
+	"license": "MIT",
+	"keywords": ["robowrite", "robowrite.ai", "roboad"],
+	"skills": "./skills/",
+	"mcpServers": "./mcp.codex.json",
+	"interface": {
+		"displayName": "RoboWrite",
+		"shortDescription": "Recover drafts and run reviewed RoboWrite content work.",
+		"longDescription": "Connect Codex to RoboWrite's hosted MCP server to inspect the signed-in organization, recover existing briefs and drafts, and run the reviewed URL-to-saved-Markdown workflow. Publication tools are not enabled. A RoboWrite account and organization are required. Browser OAuth for Codex still needs a CIMD or predefined client; do not treat this manifest as a completed ChatGPT or Codex listing.",
+		"developerName": "M Powered Ventures",
+		"category": "Productivity",
+		"websiteURL": "https://www.robowrite.ai",
+		"privacyPolicyURL": "https://www.robowrite.ai/privacy",
+		"supportURL": "https://www.robowrite.ai/contact",
+		"logo": "./assets/robowrite-mark-light.png",
+		"defaultPrompt": [
+			"Use RoboWrite to check the connected account. Make only get_account.",
+			"Show this month's drafts for my selected brand. Do not generate.",
+			"Read my brand voice and propose a brief. Do not save anything."
+		]
+	}
+}
