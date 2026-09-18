@@ -157,7 +157,7 @@ def authorize_outcome(endpoint: str, client_id: str, redirect_uri: str, scopes: 
         status, headers, body = fetch(url)
         error = as_json(body)
         if isinstance(error, dict) and error.get("error"):
-            return "rejected", f"{error['error']}: {error.get('error_description', '')[:160]}"
+            return "rejected", f"{error['error']}: {error.get('error_description', '')}"
         location = headers.get("Location")
         if status in (301, 302, 303, 307, 308) and location:
             target = urllib.parse.urljoin(url, location)
@@ -202,7 +202,13 @@ def check_static_clients(endpoint: str) -> None:
         if outcome == "accepted":
             ok(f"{label} reaches sign-in")
         elif outcome == "rejected":
-            fail(f"{label} is rejected ({detail})")
+            hint = ""
+            if "redirect_uri" in detail or detail.startswith("invalid_request"):
+                hint = (
+                    f" Fix: add {redirect_uri} to the redirect URIs of OAuth application"
+                    f" {client_id} in the Clerk dashboard, then re-run this job."
+                )
+            fail(f"{label} is rejected by the authorization server.{hint} Server said: {detail}")
         else:
             warn(f"{label}: {detail}")
 
