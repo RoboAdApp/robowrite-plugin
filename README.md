@@ -2,7 +2,7 @@
 
 Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.2.2 adds a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server now accepts Client ID Metadata Documents, so hosts that support them can sign in without a pre-registered client; dynamic client registration stays off. Grok Build, ChatGPT/Codex, Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
+Version 0.2.2 adds a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents, but on 2026-09-18 it could not resolve known-good documents from VS Code or Claude Code, so hosts without a pre-registered client cannot sign in yet; dynamic client registration stays off. Grok Build, ChatGPT/Codex, Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
@@ -80,7 +80,7 @@ copilot plugin install RoboAdApp/robowrite-plugin
 
 Copilot CLI 1.0.61 reads `.claude-plugin/plugin.json` and installs the skill. Run from a checkout of this repository, it also loads `.mcp.json` as a workspace server and maps the static client and callback port, with a notice that the nested `oauth` key is deprecated. Whether an installed plugin exposes its MCP server, and browser sign-in, remain unverified. To add the server directly: `copilot mcp add --transport http robowrite https://www.robowrite.ai/api/mcp`.
 
-For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS Code identifies itself with a Client ID Metadata Document, so no client ID is needed:
+For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS Code identifies itself with a Client ID Metadata Document. Sign-in depends on the authorization server resolving that document, which does not work yet:
 
 ```json
 {
@@ -160,6 +160,8 @@ After reviewing the plan, request the draft workflow:
 ## Releasing
 
 CI validates every manifest on each pull request: JSON structure, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
+
+CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, the 401 challenge on `/api/mcp`, and that the static client and redirect URI in each manifest reach the sign-in page. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning because this repository cannot fix it; `--strict` turns warnings into failures.
 
 To release, bump the version in all six files and merge to `main`. Nothing else is needed:
 
