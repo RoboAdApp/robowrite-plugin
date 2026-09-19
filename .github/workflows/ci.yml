@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
 
       # Read-only and unauthenticated: OAuth discovery, the 401 challenge, and
-      # whether each manifest's static client and redirect URI reach sign-in.
+      # whether each static-client manifest's client and redirect URI reach sign-in.
       - name: Check the live service against the shipped manifests
         run: python3 scripts/smoke_test.py
 

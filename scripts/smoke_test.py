@@ -65,6 +65,9 @@ def fetch(url: str, *, data: bytes | None = None, headers: dict | None = None):
     DNS, TLS, connection and timeout failures come back as status 0 with the
     error as the body, so each check can report them under its own label.
     """
+    scheme = urllib.parse.urlparse(url).scheme
+    if scheme not in ("http", "https"):
+        return 0, {}, f"unsupported URL scheme {scheme!r}"
     request = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, **(headers or {})})
     try:
         with OPENER.open(request, timeout=TIMEOUT) as response:
