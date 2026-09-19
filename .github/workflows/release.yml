@@ -169,17 +169,20 @@ jobs:
           else
             # --target is ignored when the tag already exists, so a leftover tag
             # on another commit would publish that commit. Refuse that.
-            lookup_status=0
-            tagged_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>&1) || lookup_status=$?
-            if [ "$lookup_status" -eq 0 ]; then
+            # Look up the git ref first: commits/{tag} returns 422 (not 404)
+            # when the tag is absent, which is not "not found".
+            ref_status=0
+            ref_err=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq .ref 2>&1) || ref_status=$?
+            if [ "$ref_status" -eq 0 ]; then
+              tagged_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)
               if [ "$tagged_sha" != "$GITHUB_SHA" ]; then
                 echo "::error::$TAG points to $tagged_sha, expected $GITHUB_SHA"
                 exit 1
               fi
-            elif [[ "$tagged_sha" == *"Not Found"* ]] || [[ "$tagged_sha" == *"404"* ]]; then
+            elif [[ "$ref_err" == *"Not Found"* ]] || [[ "$ref_err" == *"404"* ]]; then
               echo "$TAG does not exist yet; creating it on $GITHUB_SHA"
             else
-              echo "::error::could not resolve $TAG: $tagged_sha"
+              echo "::error::could not look up $TAG: $ref_err"
               exit 1
             fi
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes
