@@ -166,7 +166,7 @@ CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It 
 To release, bump the version in all six files and merge to `main`. Nothing else is needed:
 
 1. The release workflow runs on every push to `main` and reads the version from `server.json`.
-2. If that version is already in the registry and has a GitHub release, it stops. Merges without a version bump never publish.
+2. If that version is already in the registry and has a GitHub release, it stops. A merge that does not bump the version does not start a new release; it can still finish a half-published one.
 3. It checks the registry and the GitHub release separately. If the registry lacks this version, it publishes `server.json` through DNS authentication for `robowrite.ai` and confirms the registry serves it. If the release is missing, it then creates the `vX.Y.Z` tag and GitHub release on that commit. A half-finished release is completed on the next push or re-run.
 
 A failed run can be re-run safely: a version already in the registry is not published twice. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment, which only `main` can use; its public half is a TXT record on the `robowrite.ai` apex.
