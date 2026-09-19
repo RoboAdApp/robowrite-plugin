@@ -1,8 +1,9 @@
 name: Release
 
-# Runs on every push to main. When the version in server.json has no vX.Y.Z tag
-# yet, it publishes server.json to the Official MCP Registry, then tags the
-# commit and creates the GitHub release. A push without a version bump is a no-op.
+# Runs on every push to main. For the version in server.json, it publishes to
+# the Official MCP Registry if the registry lacks it, then creates the vX.Y.Z
+# tag and GitHub release if they are missing. A push without a version bump,
+# once that version is fully released, is a no-op.
 on:
   push:
     branches: [main]
@@ -31,7 +32,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
-      release: ${{ steps.version.outputs.release }}
+      published: ${{ steps.version.outputs.published }}
+      released: ${{ steps.version.outputs.released }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,28 +49,25 @@ jobs:
       - name: Manifests must be valid and agree on one version
         run: python3 scripts/validate_manifests.py
 
-      - name: Compare the manifest version with existing tags
+      # The registry entry and the GitHub release are checked separately, so a
+      # partial release is completed instead of skipped.
+      - name: Check what is already published and released
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(jq -r .version server.json)
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          status=0
-          git ls-remote --exit-code --tags "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/v${version}" >/dev/null || status=$?
-          if [ "$status" -eq 0 ]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "v${version} is already tagged; nothing to release." >> "$GITHUB_STEP_SUMMARY"
-          elif [ "$status" -eq 2 ]; then
-            echo "release=true" >> "$GITHUB_OUTPUT"
-            echo "Releasing v${version}." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::error::could not list tags (git ls-remote exit ${status})"
-            exit 1
-          fi
+          state=$(scripts/release_state.sh)
+          echo "$state" | tee -a "$GITHUB_OUTPUT"
+          {
+            echo "### Release state"
+            echo
+            while IFS= read -r line; do echo "    ${line}"; done <<<"$state"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   publish-registry:
     name: Publish to MCP Registry
     needs: detect
-    if: needs.detect.outputs.release == 'true'
+    if: needs.detect.outputs.published == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: mcp-registry
@@ -147,6 +146,13 @@ jobs:
   github-release:
     name: Tag and GitHub release
     needs: [detect, publish-registry]
+    # Runs after a successful publish, or on its own when the registry already
+    # has this version but the release is missing. Never after a failed publish.
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.detect.outputs.released == 'false'
+      && (needs.publish-registry.result == 'success' || needs.publish-registry.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -161,13 +161,13 @@ After reviewing the plan, request the draft workflow:
 
 CI validates every manifest on each pull request: JSON structure, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
 
-CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, the 401 challenge on `/api/mcp`, and that the static client and redirect URI in each manifest reach the sign-in page. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning because this repository cannot fix it; `--strict` turns warnings into failures.
+CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, the 401 challenge on `/api/mcp`, and that the static client and redirect URI in each manifest that ships one (`.mcp.json`, `mcp.json`, `gemini-extension.json`) reach the sign-in page. The URL-only Grok and Codex manifests have no client to check. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning because this repository cannot fix it; `--strict` turns warnings into failures.
 
 To release, bump the version in all six files and merge to `main`. Nothing else is needed:
 
 1. The release workflow runs on every push to `main` and reads the version from `server.json`.
-2. If `vX.Y.Z` is already tagged, it stops. Merges without a version bump never publish.
-3. Otherwise it publishes `server.json` to the Official MCP Registry through DNS authentication for `robowrite.ai`, confirms the registry serves the new version, then creates the `vX.Y.Z` tag and the GitHub release on that commit.
+2. If that version is already in the registry and has a GitHub release, it stops. Merges without a version bump never publish.
+3. It checks the registry and the GitHub release separately. If the registry lacks this version, it publishes `server.json` through DNS authentication for `robowrite.ai` and confirms the registry serves it. If the release is missing, it then creates the `vX.Y.Z` tag and GitHub release on that commit. A half-finished release is completed on the next push or re-run.
 
 A failed run can be re-run safely: a version already in the registry is not published twice. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment, which only `main` can use; its public half is a TXT record on the `robowrite.ai` apex.
 

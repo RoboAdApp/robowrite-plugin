@@ -60,13 +60,24 @@ OPENER = urllib.request.build_opener(NoRedirect)
 
 
 def fetch(url: str, *, data: bytes | None = None, headers: dict | None = None):
-    """Return (status, headers, body) without following redirects or raising on 4xx."""
+    """Return (status, headers, body) without following redirects or raising on 4xx.
+
+    DNS, TLS, connection and timeout failures come back as status 0 with the
+    error as the body, so each check can report them under its own label.
+    """
     request = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, **(headers or {})})
     try:
         with OPENER.open(request, timeout=TIMEOUT) as response:
             return response.status, response.headers, response.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as error:
         return error.code, error.headers, error.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        reason = getattr(error, "reason", error)
+        return 0, {}, f"transport error reaching {url}: {reason}"
+
+
+def describe(status: int, body: str) -> str:
+    return body if status == 0 else f"HTTP {status}"
 
 
 def as_json(body: str):
@@ -80,7 +91,7 @@ def check_resource_metadata() -> str | None:
     status, _, body = fetch(RESOURCE_METADATA_URL)
     metadata = as_json(body)
     if status != 200 or not isinstance(metadata, dict):
-        fail(f"protected-resource metadata: HTTP {status}, expected 200 JSON")
+        fail(f"protected-resource metadata: {describe(status, body)}, expected HTTP 200 JSON")
         return None
     if metadata.get("resource") != MCP_URL:
         fail(f"protected-resource metadata: resource is {metadata.get('resource')}, expected {MCP_URL}")
@@ -103,14 +114,14 @@ def check_unauthenticated_challenge() -> None:
             "clientInfo": {"name": "robowrite-plugin-smoke", "version": "1"},
         },
     }
-    status, headers, _ = fetch(
+    status, headers, body = fetch(
         MCP_URL,
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
     )
     challenge = headers.get("WWW-Authenticate", "")
     if status != 401:
-        fail(f"unauthenticated initialize: HTTP {status}, expected 401")
+        fail(f"unauthenticated initialize: {describe(status, body)}, expected HTTP 401")
     elif RESOURCE_METADATA_URL not in challenge:
         fail(f"unauthenticated initialize: WWW-Authenticate does not point at the resource metadata ({challenge!r})")
     else:
@@ -121,7 +132,7 @@ def check_authorization_server(issuer: str) -> dict | None:
     status, _, body = fetch(f"{issuer}/.well-known/oauth-authorization-server")
     metadata = as_json(body)
     if status != 200 or not isinstance(metadata, dict):
-        fail(f"authorization-server metadata: HTTP {status}, expected 200 JSON")
+        fail(f"authorization-server metadata: {describe(status, body)}, expected HTTP 200 JSON")
         return None
     if "S256" not in (metadata.get("code_challenge_methods_supported") or []):
         fail("authorization server does not advertise PKCE S256")
@@ -137,7 +148,8 @@ def check_authorization_server(issuer: str) -> dict | None:
 def authorize_outcome(endpoint: str, client_id: str, redirect_uri: str, scopes: list[str]):
     """Start an authorization request and report how the server treats the client.
 
-    Returns ("accepted" | "rejected" | "inconclusive", detail). The server
+    Returns ("accepted" | "rejected" | "error" | "inconclusive", detail), where
+    "error" means the server could not be reached. The server
     validates the client on the hop after the first redirect, so follow one hop.
     """
     query = urllib.parse.urlencode(
@@ -155,6 +167,8 @@ def authorize_outcome(endpoint: str, client_id: str, redirect_uri: str, scopes: 
     url = f"{endpoint}?{query}"
     for _ in range(3):
         status, headers, body = fetch(url)
+        if status == 0:
+            return "error", body
         error = as_json(body)
         if isinstance(error, dict) and error.get("error"):
             return "rejected", f"{error['error']}: {error.get('error_description', '')}"
@@ -201,6 +215,8 @@ def check_static_clients(endpoint: str) -> None:
         label = f"{manifest}: client {client_id} with redirect {redirect_uri}"
         if outcome == "accepted":
             ok(f"{label} reaches sign-in")
+        elif outcome == "error":
+            fail(f"{label}: {detail}")
         elif outcome == "rejected":
             hint = ""
             if "redirect_uri" in detail or detail.startswith("invalid_request"):
