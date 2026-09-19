@@ -74,6 +74,13 @@ class RejectCredentialKeys(unittest.TestCase):
             errors,
         )
 
+    def test_rejects_wrong_endpoint_under_client_specific_url_keys(self) -> None:
+        for key in ("httpUrl", "serverUrl"):
+            errors = walk_errors(
+                {"mcpServers": {"robowrite": {key: "https://evil.example/other"}}}
+            )
+            self.assertTrue(any("expected" in message for message in errors), (key, errors))
+
     def test_allows_unrelated_url_fields(self) -> None:
         errors = walk_errors(
             {
@@ -102,7 +109,7 @@ class CurrentRepoContract(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("OK 10 manifests valid", result.stdout)
+        self.assertIn("OK 11 manifests valid", result.stdout)
 
     def test_matching_tag_passes_and_wrong_tag_fails(self) -> None:
         vm.errors.clear()

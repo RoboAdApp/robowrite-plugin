@@ -1,11 +1,13 @@
 name: Release
 
-# Push a vX.Y.Z tag after the version bump lands on main. The workflow checks
-# that every manifest carries that version, publishes server.json to the
-# Official MCP Registry, and creates the GitHub release.
+# Runs on every push to main. For the version in server.json, it publishes to
+# the Official MCP Registry if the registry lacks it, then creates the vX.Y.Z
+# tag and GitHub release if they are missing. A push without a version bump,
+# once that version is fully released, is a no-op.
 on:
   push:
-    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,28 +26,53 @@ env:
   REGISTRY_NAME: ai.robowrite/mcp
 
 jobs:
-  validate:
-    name: Validate tag
+  detect:
+    name: Detect unreleased version
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      published: ${{ steps.version.outputs.published }}
+      released: ${{ steps.version.outputs.released }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
-      - name: Tag must be on main
-        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Only main can release
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::releases run from main, not ${GITHUB_REF}"
+            exit 1
+          fi
 
-      - name: Manifests must match the tag
-        run: python3 scripts/validate_manifests.py --tag "$GITHUB_REF_NAME"
+      - name: Manifests must be valid and agree on one version
+        run: python3 scripts/validate_manifests.py
+
+      # The registry entry and the GitHub release are checked separately, so a
+      # partial release is completed instead of skipped.
+      - name: Check what is already published and released
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(scripts/release_state.sh)
+          echo "$state" | tee -a "$GITHUB_OUTPUT"
+          {
+            echo "### Release state"
+            echo
+            while IFS= read -r line; do echo "    ${line}"; done <<<"$state"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   publish-registry:
     name: Publish to MCP Registry
-    needs: validate
+    needs: detect
+    if: needs.detect.outputs.published == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: mcp-registry
+    env:
+      VERSION: ${{ needs.detect.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -62,7 +89,7 @@ jobs:
       - name: Skip if this version is already in the registry
         id: existing
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="$VERSION"
           found=$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers?search=${REGISTRY_NAME}&version=${version}" \
             | jq --arg name "$REGISTRY_NAME" --arg version "$version" \
               '[(.servers // [])[] | select(.server.name == $name and .server.version == $version)] | length')
@@ -92,7 +119,7 @@ jobs:
         env:
           ALREADY_PUBLISHED: ${{ steps.existing.outputs.found }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="$VERSION"
           if ! [[ "$ALREADY_PUBLISHED" =~ ^[0-9]+$ ]]; then
             echo "::error::registry version lookup did not return a count"
             exit 1
@@ -117,19 +144,43 @@ jobs:
           exit 1
 
   github-release:
-    name: GitHub release
-    needs: publish-registry
+    name: Tag and GitHub release
+    needs: [detect, publish-registry]
+    # Runs after a successful publish, or on its own when the registry already
+    # has this version but the release is missing. Never after a failed publish.
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.detect.outputs.released == 'false'
+      && (needs.publish-registry.result == 'success' || needs.publish-registry.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     steps:
-      - name: Create the release if it does not exist
+      # Creates the vX.Y.Z tag on the released commit along with the release.
+      - name: Create the tag and release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.detect.outputs.version }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
           else
-            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+            # --target is ignored when the tag already exists, so a leftover tag
+            # on another commit would publish that commit. Refuse that.
+            lookup_status=0
+            tagged_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>&1) || lookup_status=$?
+            if [ "$lookup_status" -eq 0 ]; then
+              if [ "$tagged_sha" != "$GITHUB_SHA" ]; then
+                echo "::error::$TAG points to $tagged_sha, expected $GITHUB_SHA"
+                exit 1
+              fi
+            elif [[ "$tagged_sha" == *"Not Found"* ]] || [[ "$tagged_sha" == *"404"* ]]; then
+              echo "$TAG does not exist yet; creating it on $GITHUB_SHA"
+            else
+              echo "::error::could not resolve $TAG: $tagged_sha"
+              exit 1
+            fi
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes
           fi

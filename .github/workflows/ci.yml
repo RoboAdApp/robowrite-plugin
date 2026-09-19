@@ -38,3 +38,36 @@ jobs:
 
       - name: Validate server.json against the registry schema
         run: ./mcp-publisher validate
+
+  smoke:
+    name: Smoke test hosted service
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Read-only and unauthenticated: OAuth discovery, the 401 challenge, and
+      # whether each static-client manifest's client and redirect URI reach sign-in.
+      - name: Check the live service against the shipped manifests
+        run: python3 scripts/smoke_test.py
+
+      # Same lookup the release workflow uses, so the preview cannot disagree with it.
+      - name: Preview what merging would release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(scripts/release_state.sh)
+          version=$(sed -n 's/^version=//p' <<<"$state")
+          published=$(sed -n 's/^published=//p' <<<"$state")
+          released=$(sed -n 's/^released=//p' <<<"$state")
+          if [ "$published" = true ] && [ "$released" = true ]; then
+            echo "v${version} is already published and released. Merging releases nothing." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "Merging to main will:"
+              [ "$published" = true ] || echo "- publish v${version} to the MCP Registry"
+              [ "$released" = true ] || echo "- create the v${version} tag and GitHub release"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

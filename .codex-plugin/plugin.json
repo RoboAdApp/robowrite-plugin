@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
 	"author": {
 		"name": "M Powered Ventures",

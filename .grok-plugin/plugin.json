@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Connect Grok to RoboWrite to inspect the signed-in organization, recover briefs and drafts, and run the reviewed content workflow through the hosted MCP server.",
 	"author": {
 		"name": "M Powered Ventures",
