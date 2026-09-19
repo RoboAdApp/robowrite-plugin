@@ -28,7 +28,9 @@ USER_AGENT = "robowrite-plugin-smoke/1"
 
 # A public Client ID Metadata Document that is known to be well formed. Used
 # only to check that the authorization server can resolve such documents.
-CIMD_PROBE = ("https://claude.ai/oauth/claude-code-client-metadata", "http://localhost:8787/callback")
+# redirect_uri must be listed in that document; Clerk validates it on the
+# hop after /oauth/authorize.
+CIMD_PROBE = ("https://vscode.dev/oauth/client-metadata.json", "http://127.0.0.1:33418/")
 
 # Any S256 challenge works; the flow is never completed.
 CODE_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
@@ -106,29 +108,46 @@ def check_resource_metadata() -> str | None:
     return servers[0].rstrip("/")
 
 
-def check_unauthenticated_challenge() -> None:
-    payload = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "initialize",
-        "params": {
-            "protocolVersion": "2025-06-18",
-            "capabilities": {},
-            "clientInfo": {"name": "robowrite-plugin-smoke", "version": "1"},
-        },
-    }
-    status, headers, body = fetch(
+def mcp_post(method: str, params: dict | None = None):
+    payload: dict = {"jsonrpc": "2.0", "id": 1, "method": method}
+    if params is not None:
+        payload["params"] = params
+    return fetch(
         MCP_URL,
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
     )
+
+
+def check_unauthenticated_challenge() -> None:
+    """ChatGPT lists tools before attaching a Bearer; tools/call stays gated."""
+    status, _, body = mcp_post(
+        "initialize",
+        {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "robowrite-plugin-smoke", "version": "1"},
+        },
+    )
+    if status != 200:
+        fail(f"unauthenticated initialize: {describe(status, body)}, expected HTTP 200")
+    else:
+        ok("unauthenticated initialize succeeds so hosts can discover the server")
+
+    status, _, body = mcp_post("tools/list")
+    if status != 200:
+        fail(f"unauthenticated tools/list: {describe(status, body)}, expected HTTP 200")
+    else:
+        ok("unauthenticated tools/list succeeds so hosts can enumerate tools")
+
+    status, headers, body = mcp_post("tools/call", {"name": "get_account", "arguments": {}})
     challenge = headers.get("WWW-Authenticate", "")
     if status != 401:
-        fail(f"unauthenticated initialize: {describe(status, body)}, expected HTTP 401")
+        fail(f"unauthenticated tools/call: {describe(status, body)}, expected HTTP 401")
     elif RESOURCE_METADATA_URL not in challenge:
-        fail(f"unauthenticated initialize: WWW-Authenticate does not point at the resource metadata ({challenge!r})")
+        fail(f"unauthenticated tools/call: WWW-Authenticate does not point at the resource metadata ({challenge!r})")
     else:
-        ok("unauthenticated initialize returns 401 with an OAuth challenge")
+        ok("unauthenticated tools/call returns 401 with an OAuth challenge")
 
 
 def check_authorization_server(issuer: str) -> dict | None:
