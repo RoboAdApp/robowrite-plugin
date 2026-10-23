@@ -48,8 +48,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # Read-only and unauthenticated: OAuth discovery, the 401 challenge, and
-      # whether each static-client manifest's client and redirect URI reach sign-in.
+      # Read-only and unauthenticated: OAuth discovery, unsigned initialize and
+      # tools/list, 401 on tools/call, and whether each static-client manifest's
+      # client and redirect URI reach sign-in.
       - name: Check the live service against the shipped manifests
         run: python3 scripts/smoke_test.py
 

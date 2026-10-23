@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import unittest
 import urllib.error
 from pathlib import Path
@@ -78,6 +79,57 @@ class FetchTransport(unittest.TestCase):
             )
         self.assertEqual(sm.failures, [])
         self.assertTrue(sm.warnings, sm.warnings)
+
+    def test_unsigned_initialize_401_is_a_failure(self) -> None:
+        def fake_fetch(url, *, data=None, headers=None):
+            payload = json.loads(data.decode()) if data else {}
+            if payload.get("method") == "initialize":
+                return 401, {"WWW-Authenticate": f'Bearer resource_metadata="{sm.RESOURCE_METADATA_URL}"'}, "{}"
+            if payload.get("method") == "tools/list":
+                return 200, {}, "{}"
+            if payload.get("method") == "tools/call":
+                return 401, {"WWW-Authenticate": f'Bearer resource_metadata="{sm.RESOURCE_METADATA_URL}"'}, "{}"
+            return 0, {}, "unexpected"
+
+        with mock.patch.object(sm, "fetch", side_effect=fake_fetch):
+            sm.check_unauthenticated_challenge()
+        self.assertTrue(
+            any("unauthenticated initialize" in message and "401" in message for message in sm.failures),
+            sm.failures,
+        )
+
+    def test_unsigned_tools_call_must_still_challenge(self) -> None:
+        def fake_fetch(url, *, data=None, headers=None):
+            payload = json.loads(data.decode()) if data else {}
+            if payload.get("method") in {"initialize", "tools/list"}:
+                return 200, {}, "{}"
+            if payload.get("method") == "tools/call":
+                return 200, {}, "{}"
+            return 0, {}, "unexpected"
+
+        with mock.patch.object(sm, "fetch", side_effect=fake_fetch):
+            sm.check_unauthenticated_challenge()
+        self.assertTrue(
+            any("unauthenticated tools/call" in message and "200" in message for message in sm.failures),
+            sm.failures,
+        )
+
+    def test_unsigned_discovery_and_gated_call_pass(self) -> None:
+        def fake_fetch(url, *, data=None, headers=None):
+            payload = json.loads(data.decode()) if data else {}
+            if payload.get("method") in {"initialize", "tools/list"}:
+                return 200, {}, "{}"
+            if payload.get("method") == "tools/call":
+                return (
+                    401,
+                    {"WWW-Authenticate": f'Bearer resource_metadata="{sm.RESOURCE_METADATA_URL}"'},
+                    "{}",
+                )
+            return 0, {}, "unexpected"
+
+        with mock.patch.object(sm, "fetch", side_effect=fake_fetch):
+            sm.check_unauthenticated_challenge()
+        self.assertEqual(sm.failures, [])
 
 
 if __name__ == "__main__":
