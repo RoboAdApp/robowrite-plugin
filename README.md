@@ -123,7 +123,7 @@ This plugin contains no executable, hooks, install scripts, or environment-varia
 
 Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
 
-Unauthenticated calls to `/api/mcp` return 401 with an OAuth challenge. That is intentional.
+Unauthenticated tool calls to `/api/mcp` return 401 with an OAuth challenge. That is intentional. `initialize` and `tools/list` answer without sign-in so clients and registries can discover the server.
 
 ## Access and usage
 

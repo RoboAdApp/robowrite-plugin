@@ -107,15 +107,13 @@ def check_resource_metadata() -> str | None:
 
 
 def check_unauthenticated_challenge() -> None:
+    # initialize and tools/list are open so clients and registries can discover
+    # the server; every tool call needs a bearer token and gets the challenge.
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
-        "method": "initialize",
-        "params": {
-            "protocolVersion": "2025-06-18",
-            "capabilities": {},
-            "clientInfo": {"name": "robowrite-plugin-smoke", "version": "1"},
-        },
+        "method": "tools/call",
+        "params": {"name": "get_account", "arguments": {}},
     }
     status, headers, body = fetch(
         MCP_URL,
@@ -124,11 +122,11 @@ def check_unauthenticated_challenge() -> None:
     )
     challenge = headers.get("WWW-Authenticate", "")
     if status != 401:
-        fail(f"unauthenticated initialize: {describe(status, body)}, expected HTTP 401")
+        fail(f"unauthenticated tools/call: {describe(status, body)}, expected HTTP 401")
     elif RESOURCE_METADATA_URL not in challenge:
-        fail(f"unauthenticated initialize: WWW-Authenticate does not point at the resource metadata ({challenge!r})")
+        fail(f"unauthenticated tools/call: WWW-Authenticate does not point at the resource metadata ({challenge!r})")
     else:
-        ok("unauthenticated initialize returns 401 with an OAuth challenge")
+        ok("unauthenticated tools/call returns 401 with an OAuth challenge")
 
 
 def check_authorization_server(issuer: str) -> dict | None:
