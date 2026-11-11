@@ -21,8 +21,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MCP_URL = "https://www.robowrite.ai/api/mcp"
-RESOURCE_METADATA_URL = "https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp"
+MCP_URL = "https://mcp.robowrite.ai/mcp"
+_resource = urllib.parse.urlsplit(MCP_URL)
+RESOURCE_METADATA_URL = urllib.parse.urlunsplit(
+    (_resource.scheme, _resource.netloc, f"/.well-known/oauth-protected-resource{_resource.path}", "", "")
+)
 TIMEOUT = 20
 USER_AGENT = "robowrite-plugin-smoke/1"
 

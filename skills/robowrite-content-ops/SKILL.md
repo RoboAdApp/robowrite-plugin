@@ -7,7 +7,7 @@ Use the RoboWrite connector for the user's content task. Ask for missing website
 
 ## Connect and sign in
 
-This plugin connects to the hosted RoboWrite service at `https://www.robowrite.ai/api/mcp`. Use the client configuration bundled with the plugin. Sign in through the client's browser OAuth flow and select the intended organization. The public client uses PKCE and the local callback `http://localhost:8787/callback`; its client ID is not a secret. Never add a client secret or request passwords, API keys, bearer tokens, or Strapi tokens in chat.
+This plugin connects to the hosted RoboWrite service at `https://mcp.robowrite.ai/mcp`. Use the client configuration bundled with the plugin. After the endpoint migration, reconnect through browser OAuth; an old-resource or audience-less grant must not be retried as a tool call. Sign in through the client's browser OAuth flow and select the intended organization. The public client uses PKCE and the local callback `http://localhost:8787/callback`; its client ID is not a secret. Never add a client secret or request passwords, API keys, bearer tokens, or Strapi tokens in chat.
 
 Resume with `get_account` and verify `organization.id` before writing. A changed organization requires reconnecting with the intended organization; do not substitute IDs from another account. If the browser asks the user to finish organization or billing setup, finish that flow and retry account discovery. The full onboarding wizard is not a prerequisite for creating a URL-based brand. An expired or revoked connection returns to the client's sign-in flow.
 

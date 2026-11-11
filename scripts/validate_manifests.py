@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MCP_URL = "https://www.robowrite.ai/api/mcp"
+MCP_URL = "https://mcp.robowrite.ai/mcp"
 # Clients name the remote endpoint differently (Gemini CLI uses `httpUrl`).
 MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 REGISTRY_NAME = "ai.robowrite/mcp"

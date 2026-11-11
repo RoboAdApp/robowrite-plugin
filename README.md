@@ -2,7 +2,9 @@
 
 Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
 
-Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
+Version 0.3.0 migrates all clients to `https://mcp.robowrite.ai/mcp` with exact resource-audience OAuth validation. Reconnect after updating; tokens for the old URL or without an audience are rejected. The deployment and new-endpoint sign-in/account acceptance must pass before this version is merged or released. Merging a new version automatically publishes it to the MCP Registry.
+
+The verification receipts below are historical, from the previous endpoint; they do not establish acceptance at the new URL. Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
 ## What is included
 
@@ -15,9 +17,9 @@ Version 0.2.3 teaches the content workflow skill to review held content kits (v2
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
-The plugin connects to `https://www.robowrite.ai/api/mcp`. There is no local server to build or npm package to install.
+The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server to build or npm package to install.
 
-## Verification matrix
+## Historical client verification (previous endpoint)
 
 | Client | Discovery | Browser sign-in | `get_account` | Saved draft |
 | --- | --- | --- | --- | --- |
@@ -78,7 +80,7 @@ For GitHub Copilot CLI:
 copilot plugin install RoboAdApp/robowrite-plugin
 ```
 
-Copilot CLI 1.0.61 reads `.claude-plugin/plugin.json` and installs the skill. Run from a checkout of this repository, it also loads `.mcp.json` as a workspace server and maps the static client and callback port, with a notice that the nested `oauth` key is deprecated. Whether an installed plugin exposes its MCP server, and browser sign-in, remain unverified. To add the server directly: `copilot mcp add --transport http robowrite https://www.robowrite.ai/api/mcp`.
+Copilot CLI 1.0.61 reads `.claude-plugin/plugin.json` and installs the skill. Run from a checkout of this repository, it also loads `.mcp.json` as a workspace server and maps the static client and callback port, with a notice that the nested `oauth` key is deprecated. Whether an installed plugin exposes its MCP server, and browser sign-in, remain unverified. To add the server directly: `copilot mcp add --transport http robowrite https://mcp.robowrite.ai/mcp`.
 
 For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS Code identifies itself with a Client ID Metadata Document. Clerk now accepts that document through to the sign-in page; completing browser sign-in and `get_account` still requires verification:
 
@@ -87,7 +89,7 @@ For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS C
 	"servers": {
 		"robowrite": {
 			"type": "http",
-			"url": "https://www.robowrite.ai/api/mcp"
+			"url": "https://mcp.robowrite.ai/mcp"
 		}
 	}
 }
@@ -99,7 +101,7 @@ For Windsurf, add this to `~/.codeium/windsurf/mcp_config.json`:
 {
 	"mcpServers": {
 		"robowrite": {
-			"serverUrl": "https://www.robowrite.ai/api/mcp"
+			"serverUrl": "https://mcp.robowrite.ai/mcp"
 		}
 	}
 }
@@ -117,8 +119,8 @@ This plugin contains no executable, hooks, install scripts, or environment-varia
 
 | Endpoint | Why |
 | --- | --- |
-| `https://www.robowrite.ai/api/mcp` | Hosted Streamable HTTP MCP. Every tool call goes here. |
-| `https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp` | Protected-resource metadata for OAuth discovery. |
+| `https://mcp.robowrite.ai/mcp` | Hosted Streamable HTTP MCP. Every tool call goes here. |
+| `https://mcp.robowrite.ai/.well-known/oauth-protected-resource/mcp` | Protected-resource metadata for OAuth discovery. |
 | Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
 
 Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.

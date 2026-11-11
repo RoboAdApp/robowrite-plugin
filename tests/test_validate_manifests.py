@@ -56,7 +56,7 @@ class RejectCredentialKeys(unittest.TestCase):
     def test_allows_public_oauth_client_fields(self) -> None:
         errors = walk_errors(
             {
-                "url": "https://www.robowrite.ai/api/mcp",
+                "url": "https://mcp.robowrite.ai/mcp",
                 "clientId": "public-client",
                 "CLIENT_ID": "public-client",
                 "callbackPort": 8787,
