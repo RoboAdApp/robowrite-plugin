@@ -185,6 +185,13 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
                 self.manifest["interface"]["composerIcon"] = value
                 self.assertTrue(self.validate(self.manifest))
 
+    def test_icon_paths_reject_parent_segments_even_when_resolution_stays_inside(self) -> None:
+        for key in ("logo", "composerIcon", "logoDark", "composerIconDark"):
+            with self.subTest(key=key):
+                manifest = copy.deepcopy(self.manifest)
+                manifest["interface"][key] = "./assets/../assets/robowrite-r.svg"
+                self.assertTrue(self.validate(manifest))
+
     def test_starter_prompt_count_and_length_limits(self) -> None:
         self.manifest["interface"]["defaultPrompt"] = "x" * 128
         self.assertEqual(self.validate(self.manifest), [])

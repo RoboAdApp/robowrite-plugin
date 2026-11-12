@@ -226,6 +226,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         value = interface.get(key)
         if (
             not isinstance(value, str) or not value.startswith("./")
+            or ".." in Path(value).parts
             or Path(value).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp", ".svg"}
             or not (ROOT / value).resolve().is_relative_to(ROOT.resolve())
             or not (ROOT / value).is_file()

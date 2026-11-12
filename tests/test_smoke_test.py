@@ -169,6 +169,23 @@ class EditorialCatalogContract(unittest.TestCase):
                 content["inputSchema"]["properties"]["version"] = {"anyOf": [integer]} if nested else integer
                 self.assertEqual(sm.editorial_catalog_errors(tools), [])
 
+    def test_anyof_branches_intersect_root_types_instead_of_overriding_them(self) -> None:
+        for root in ("string", ["string", "null"]):
+            with self.subTest(root=root):
+                tools = copy.deepcopy(self.tools)
+                schema = next(tool for tool in tools if tool["name"] == "get_content")["inputSchema"]
+                schema["properties"]["version"] = {"type": root, "anyOf": [{"type": "integer"}, {"type": "null"}]}
+                self.assertTrue(any("get_content.version" in error for error in sm.editorial_catalog_errors(tools)))
+        for root in (["integer", "null"], ["number", "null"]):
+            with self.subTest(compatible_root=root):
+                schema = self.tool("get_content")["inputSchema"]
+                schema["properties"]["version"] = {"type": root, "anyOf": [{"anyOf": [{"type": "integer"}, {"type": "null"}]}]}
+                self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+        for schema in ({}, {"anyOf": [{}]}, {"type": ["integer", "null"], "anyOf": [{}]}):
+            with self.subTest(unconstrained_branch=schema):
+                self.tool("get_content")["inputSchema"]["properties"]["version"] = schema
+                self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
     def test_missing_tool_names_the_unavailable_operation(self) -> None:
         tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
         self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))
@@ -191,7 +208,13 @@ class EditorialCatalogContract(unittest.TestCase):
         self.assertTrue(any("new_requirement" in error for error in sm.editorial_catalog_errors(self.tools)))
 
     def test_exact_version_selector_retains_optional_nullable_integer_contract(self) -> None:
-        for replacement in (None, {"type": "string"}, {"type": "integer"}, {"anyOf": [{"type": "string"}, {"type": "null"}]}, {"anyOf": [{"type": "null"}]}, {"anyOf": [{}]}):
+        for replacement in (
+            None, {"type": "string"}, {"type": "integer"},
+            {"anyOf": [{"type": "string"}, {"type": "null"}]},
+            {"anyOf": [{"type": "null"}]}, {"anyOf": [{"type": {}}]},
+            {"anyOf": [{"type": "integer"}, {"type": "null"}, None]},
+            {"type": ["integer", "null", {}]}, {"type": ["integer", "null", "unknown"]},
+        ):
             with self.subTest(replacement=replacement):
                 tools = copy.deepcopy(self.tools)
                 schema = next(tool for tool in tools if tool["name"] == "get_content")["inputSchema"]

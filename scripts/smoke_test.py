@@ -59,6 +59,7 @@ EDITORIAL_READ_IDS = {
     "list_reviews": (),
     "get_review": ("review_id",),
 }
+SCHEMA_TYPES = frozenset(("null", "boolean", "object", "array", "number", "integer", "string"))
 
 failures: list[str] = []
 warnings: list[str] = []
@@ -200,19 +201,36 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         elif extra := set(keys) - allowed:
             errors.append(f"{location} adds undocumented required fields: {', '.join(sorted(extra))}")
 
+    def asserted_types(schema) -> set[str]:
+        """Coarsely project supported type/anyOf constraints, not all JSON Schema."""
+        if isinstance(schema, bool):
+            return set(SCHEMA_TYPES) if schema else set()
+        if not isinstance(schema, dict):
+            raise ValueError("type schemas must be objects or booleans")
+        types = set(SCHEMA_TYPES)
+        if "type" in schema:
+            declared = schema["type"]
+            choices = [declared] if isinstance(declared, str) else declared if isinstance(declared, list) else []
+            if not choices or any(not isinstance(choice, str) or choice not in SCHEMA_TYPES for choice in choices) or len(set(choices)) != len(choices):
+                raise ValueError("type must name unique supported JSON types")
+            types = set(choices)
+            if "number" in types:
+                types.add("integer")
+        if "anyOf" in schema:
+            branches = schema["anyOf"]
+            if not isinstance(branches, list) or not branches:
+                raise ValueError("anyOf must contain schemas")
+            types &= set().union(*(asserted_types(branch) for branch in branches))
+        return types
+
     def optional_value(schema: dict, key: str, kind: str, location: str, *, nullable: bool = False) -> None:
         properties = schema.get("properties", {})
         value = properties.get(key) if isinstance(properties, dict) else None
-        choices = value.get("anyOf", []) if isinstance(value, dict) else []
-        types = set()
-        for declaration in [value, *(choices if isinstance(choices, list) else [])]:
-            if not isinstance(declaration, dict):
-                continue
-            declared = declaration.get("type")
-            if isinstance(declared, str):
-                types.add(declared)
-            elif isinstance(declared, list):
-                types.update(kind for kind in declared if isinstance(kind, str))
+        try:
+            types = asserted_types(value)
+        except ValueError:
+            errors.append(f"{location}.{key} must expose a valid supported type schema")
+            return
         if kind not in types or (nullable and "null" not in types):
             errors.append(f"{location}.{key} must retain a " + ("nullable " if nullable else "") + f"{kind} payload schema")
 
