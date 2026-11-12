@@ -200,15 +200,15 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         elif extra := set(keys) - allowed:
             errors.append(f"{location} adds undocumented required fields: {', '.join(sorted(extra))}")
 
-    def optional_string(schema: dict, key: str, location: str) -> None:
+    def optional_value(schema: dict, key: str, kind: str, location: str, *, nullable: bool = False) -> None:
         properties = schema.get("properties", {})
         value = properties.get(key) if isinstance(properties, dict) else None
         choices = value.get("anyOf", []) if isinstance(value, dict) else []
-        if not isinstance(value, dict) or not (
-            value.get("type") == "string"
-            or (isinstance(choices, list) and any(isinstance(choice, dict) and choice.get("type") == "string" for choice in choices))
-        ):
-            errors.append(f"{location}.{key} must retain a string payload schema")
+        types = {choice["type"] for choice in choices if isinstance(choice, dict) and isinstance(choice.get("type"), str)} if isinstance(choices, list) else set()
+        if isinstance(value, dict) and isinstance(value.get("type"), str):
+            types.add(value["type"])
+        if kind not in types or (nullable and "null" not in types):
+            errors.append(f"{location}.{key} must retain a " + ("nullable " if nullable else "") + f"{kind} payload schema")
 
     for name in sorted(required & catalog.keys()):
         tool = catalog[name]
@@ -225,6 +225,8 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             for key in keys:
                 field(schema, key, "string", name, uuid=True)
             required_only(schema, set(keys), name)
+            if name == "get_content":
+                optional_value(schema, "version", "integer", name, nullable=True)
             continue
         root_fields = {"body"}
         if name != "request_review":
@@ -244,9 +246,9 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         properties = schema.get("properties", {})
         if name == "edit_draft":
             for key in ("markdown_body", "target", "replacement"):
-                optional_string(body, key, f"{name}.body")
+                optional_value(body, key, "string", f"{name}.body")
         if name == "rewrite_draft":
-            optional_string(body, "section_id", f"{name}.body")
+            optional_value(body, "section_id", "string", f"{name}.body")
             key = field(schema, "idempotency_key", "string", name)
             if type(key.get("minLength")) is not int or key["minLength"] < 1:
                 errors.append("rewrite_draft idempotency_key must exclude empty keys")

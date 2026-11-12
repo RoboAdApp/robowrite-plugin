@@ -178,6 +178,19 @@ class EditorialCatalogContract(unittest.TestCase):
         body["required"].append("new_requirement")
         self.assertTrue(any("new_requirement" in error for error in sm.editorial_catalog_errors(self.tools)))
 
+    def test_exact_version_selector_retains_optional_nullable_integer_contract(self) -> None:
+        for replacement in (None, {"type": "string"}, {"type": "integer"}, {"anyOf": [{"type": "string"}, {"type": "null"}]}, {"anyOf": [{"type": "null"}]}, {"anyOf": [{}]}):
+            with self.subTest(replacement=replacement):
+                tools = copy.deepcopy(self.tools)
+                schema = next(tool for tool in tools if tool["name"] == "get_content")["inputSchema"]
+                if replacement is None:
+                    schema["properties"].pop("version")
+                else:
+                    schema["properties"]["version"] = replacement
+                self.assertTrue(any("get_content.version" in error for error in sm.editorial_catalog_errors(tools)))
+        self.tool("get_content")["inputSchema"]["required"].append("version")
+        self.assertTrue(any("version" in error for error in sm.editorial_catalog_errors(self.tools)))
+
     def test_documented_edit_and_section_rewrite_payloads_cannot_disappear_or_change_type(self) -> None:
         for name, keys in (("edit_draft", ("markdown_body", "target", "replacement")), ("rewrite_draft", ("section_id",))):
             for key in keys:
