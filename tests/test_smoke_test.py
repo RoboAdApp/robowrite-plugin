@@ -250,15 +250,16 @@ class EditorialCatalogContract(unittest.TestCase):
         self.assertEqual(json.loads(next(pages)[2])["result"]["nextCursor"], "2")
 
     def test_sse_catalog_skips_notifications_and_matches_response_across_pages(self) -> None:
+        self.tools[0]["description"] = "Read account\u2028without modifying it"
         pages = []
         for tools, cursor in ((self.tools[:2], "next"), (self.tools[2:], None)):
             result = {"tools": tools}
             if cursor:
                 result["nextCursor"] = cursor
-            response = json.dumps({"jsonrpc": "2.0", "id": 1, "result": result}, indent=2)
+            response = json.dumps({"jsonrpc": "2.0", "id": 1, "result": result}, indent=2, ensure_ascii=False)
             events = ': keepalive\r\n\r\ndata: {"jsonrpc":"2.0","method":"notifications/progress"}\r\n\r\n'
             events += 'data: {"jsonrpc":"2.0","id":2,"result":{"tools":[]}}\r\n\r\n'
-            events += "\r\n".join("data: " + line for line in response.splitlines()) + "\r\n\r\n"
+            events += "\r\n".join("data: " + line for line in response.split("\n")) + "\r\n\r\n"
             pages.append((200, {"content-type": "text/event-stream; charset=utf-8"}, events))
         with mock.patch.object(sm, "mcp_post", side_effect=pages):
             sm.check_public_tool_catalog()

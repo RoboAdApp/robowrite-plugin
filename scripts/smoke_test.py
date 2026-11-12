@@ -123,7 +123,8 @@ def mcp_response(headers: dict, body: str):
     if content_type.split(";", 1)[0].strip().lower() != "text/event-stream":
         return as_json(body)
     data = []
-    for line in [*body.splitlines(), ""]:
+    # SSE line boundaries are CR/LF only; Unicode separators may be JSON text.
+    for line in [*body.replace("\r\n", "\n").replace("\r", "\n").split("\n"), ""]:
         if not line:
             if data:
                 payload = as_json("\n".join(data))
