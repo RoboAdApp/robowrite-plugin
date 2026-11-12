@@ -7,8 +7,10 @@ import copy
 import importlib.util
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_manifests.py"
@@ -203,6 +205,43 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
     def test_setup_entry_must_reference_an_included_skill(self) -> None:
         self.manifest["extensions"]["com.openai"]["onboardingSkill"] = "./README.md"
         self.assertTrue(self.validate(self.manifest))
+
+    def test_setup_entry_requires_a_direct_skill_directory_even_when_nested_file_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for value in {self.manifest["interface"][key] for key in vm.OPENAI_REQUIRED_ICONS}:
+                asset = root / value
+                asset.parent.mkdir(parents=True, exist_ok=True)
+                asset.write_bytes((ROOT / value).read_bytes())
+            for relative, accepted in (("./skills/setup/SKILL.md", True), ("./skills/group/setup/SKILL.md", False)):
+                with self.subTest(relative=relative):
+                    skill = root / relative
+                    skill.parent.mkdir(parents=True, exist_ok=True)
+                    skill.write_text("---\nname: setup\ndescription: Setup\n---\nSetup workflow\n")
+                    self.manifest["extensions"]["com.openai"]["onboardingSkill"] = relative
+                    with mock.patch.object(vm, "ROOT", root):
+                        errors = self.validate(self.manifest)
+                    self.assertEqual(errors, [] if accepted else [".codex-plugin/plugin.json: onboardingSkill must reference an included skill"])
+
+    def test_required_text_needs_content_but_keeps_format_characters_with_visible_text(self) -> None:
+        for key in ("displayName", "shortDescription", "longDescription", "developerName", "capabilities", "defaultPrompt"):
+            for content in ("\u200b", " \u200c\u200d\u2060 "):
+                with self.subTest(key=key, content=content):
+                    manifest = copy.deepcopy(self.manifest)
+                    manifest["interface"][key] = [content] if key in ("capabilities", "defaultPrompt") else content
+                    self.assertTrue(self.validate(manifest))
+            manifest = copy.deepcopy(self.manifest)
+            manifest["interface"][key] = ["Team 👩\u200d💻"] if key in ("capabilities", "defaultPrompt") else "مهدی\u200cزاره"
+            self.assertEqual(self.validate(manifest), [])
+
+    def test_listing_urls_allow_fragments_without_relaxing_other_url_rules(self) -> None:
+        for key in vm.OPENAI_LISTING_URLS:
+            with self.subTest(key=key):
+                self.manifest["interface"][key] = "https://example.com/privacy?lang=en#choices"
+                self.assertEqual(self.validate(self.manifest), [])
+                self.manifest["interface"][key] = "https://example.com/privacy#bad\nfragment"
+                self.assertTrue(self.validate(self.manifest))
+                self.manifest["interface"][key] = "https://example.com/privacy#choices"
 
     def test_category_uses_supported_directory_titles(self) -> None:
         for category in ("Writing", "productivity"):

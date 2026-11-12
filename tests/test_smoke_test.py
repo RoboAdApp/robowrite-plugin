@@ -349,6 +349,20 @@ class EditorialCatalogContract(unittest.TestCase):
                 self.assertTrue(any("expected a tool catalog" in message for message in sm.failures))
                 sm.failures.clear()
 
+    def test_sse_allows_empty_reconnection_priming_but_rejects_malformed_data(self) -> None:
+        response = "data: " + json.dumps(rpc_result({"tools": self.tools})) + "\n\n"
+        for prefix, accepted in (
+            ("id: reconnect\ndata:\n\n", True),
+            ("id: reconnect\ndata: \n\n", True),
+            ("data: invalid\n\n", False),
+            ("data: []\n\n", False),
+            ("data: null\n\n", False),
+        ):
+            with self.subTest(prefix=prefix), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, prefix + response)):
+                sm.check_public_tool_catalog()
+                self.assertEqual(not sm.failures, accepted)
+                sm.failures.clear()
+
     def test_sse_requires_a_real_blank_line_delimiter_before_dispatch(self) -> None:
         event = "data: " + json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"tools": self.tools}})
         for ending in ("", "\n", "\r\n", "\r"):

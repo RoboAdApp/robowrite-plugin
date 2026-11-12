@@ -140,7 +140,12 @@ def mcp_response(headers: dict, body: str):
     for line in body.removeprefix("\ufeff").replace("\r\n", "\n").replace("\r", "\n").split("\n")[:-1]:
         if not line:
             if data:
-                payload = as_json("\n".join(data))
+                event_data = "\n".join(data)
+                if not event_data:
+                    # MCP permits an empty-data SSE event to prime reconnection.
+                    data = []
+                    continue
+                payload = as_json(event_data)
                 if not isinstance(payload, dict):
                     return None
                 response = matching_response(payload)

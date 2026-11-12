@@ -57,6 +57,11 @@ def supported_text(value: str, *, multiline: bool = False) -> bool:
     )
 
 
+def has_text_content(value: str) -> bool:
+    """Keep joiners in text, but do not count formatting alone as content."""
+    return any(not char.isspace() and unicodedata.category(char) != "Cf" for char in value)
+
+
 def valid_url_host(host: str, *, bracketed: bool = False) -> bool:
     """Check host syntax only; preserve IDNA, escaped reg-names and IPs."""
     try:
@@ -185,7 +190,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         return
     for key, limit in OPENAI_TEXT_LIMITS.items():
         value = interface.get(key)
-        if not isinstance(value, str) or not value.strip():
+        if not isinstance(value, str) or not has_text_content(value):
             fail(f"{relative}: interface.{key} is required")
         elif limit is not None and len(value) > limit:
             fail(f"{relative}: interface.{key} exceeds {limit} characters")
@@ -207,7 +212,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
                 and valid_url_host(url.hostname, bracketed=url.netloc.startswith("["))
                 and (port is None or 0 <= port <= 65535)
                 and url.username is None and url.password is None
-                and not url.fragment and len(value) <= 1024
+                and len(value) <= 1024
             )
         except ValueError:
             valid = False
@@ -216,7 +221,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
     capabilities = interface.get("capabilities")
     if (
         not isinstance(capabilities, list) or len(capabilities) > 20
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 120 or not single_line(value) or not supported_text(value)
+        or any(not isinstance(value, str) or not has_text_content(value) or len(value) > 120 or not single_line(value) or not supported_text(value)
                for value in capabilities)
     ):
         fail(f"{relative}: interface.capabilities must contain at most 20 nonempty labels of 120 characters")
@@ -237,7 +242,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         prompts = [prompts]
     if (
         not isinstance(prompts, list) or len(prompts) > 3
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 128 or not single_line(value) or not supported_text(value)
+        or any(not isinstance(value, str) or not has_text_content(value) or len(value) > 128 or not single_line(value) or not supported_text(value)
                for value in prompts)
     ):
         fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
@@ -251,7 +256,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         value = openai["onboardingSkill"]
         if (
             not isinstance(value, str) or not value.startswith("./skills/")
-            or not (ROOT / value).resolve().is_relative_to((ROOT / "skills").resolve())
+            or (ROOT / value).resolve().parent.parent != (ROOT / "skills").resolve()
             or not (ROOT / value).is_file() or Path(value).name != "SKILL.md"
         ):
             fail(f"{relative}: onboardingSkill must reference an included skill")
