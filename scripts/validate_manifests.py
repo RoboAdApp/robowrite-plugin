@@ -72,6 +72,30 @@ def valid_url_host(host: str, *, bracketed: bool = False) -> bool:
     except (ValueError, UnicodeError):
         return False
 
+
+def contains_mcp_mention(value: str) -> bool:
+    """Ignore valid bounded HTTP(S) URL spans, but retain neighboring text."""
+    def ordinary_url(match: re.Match) -> str:
+        candidate = match.group(0)
+        try:
+            url = urlsplit(candidate)
+            port = url.port
+            if (
+                url.scheme in {"http", "https"} and url.hostname
+                and (port is None or 0 <= port <= 65535)
+                and supported_text(candidate) and "\\" not in candidate
+                and valid_url_host(url.hostname, bracketed=":" in url.hostname)
+            ):
+                return ""
+        except (ValueError, UnicodeError):
+            pass
+        return candidate
+
+    # Square brackets are allowed only around an IP literal, not as trailing
+    # Markdown delimiters; parentheses and angle brackets also end the span.
+    text = re.sub(r"\bhttps?://(?:\[[^\]\s<>()]+\]|[^\s<>()\[\]{}]+)[^\s<>()\[\]{}]*", ordinary_url, value)
+    return re.search(r"(?<![\w@])@\w[\w.-]*", text) is not None
+
 # Every file that carries the release version. They must all agree.
 VERSIONED = [
     "server.json",
@@ -218,7 +242,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
     elif len({" ".join(unicodedata.normalize("NFKC", value).split()) for value in prompts}) != len(prompts):
         fail(f"{relative}: interface.defaultPrompt must be unique after Unicode and whitespace normalization")
-    elif any(re.search(r"(?<![\w@])@\w[\w.-]*", value) for value in prompts):
+    elif any(contains_mcp_mention(value) for value in prompts):
         fail(f"{relative}: interface.defaultPrompt must not contain MCP server @mentions")
     extensions = manifest.get("extensions", {})
     openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else {}

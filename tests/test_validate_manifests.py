@@ -279,11 +279,23 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
                 self.assertTrue(self.validate(self.manifest))
 
     def test_starter_mentions_fail_but_emails_and_ordinary_at_symbols_remain_valid(self) -> None:
-        for prompt in ("@robowrite show my drafts", "Open (@robowrite) and read my brief"):
+        for prompt in (
+            "@robowrite show my drafts", "Open (@robowrite) and read my brief",
+            "Read https://example.com/@author then @robowrite show my drafts",
+            "Read [https://example.com/@author]@robowrite",
+            "Read [notes](https://example.com/@author)@robowrite",
+            "Read <https://example.com/@author>@robowrite",
+            "Read https://exa%20mple.com/@robowrite",
+            "Read https://example.com:invalid/@robowrite",
+        ):
             with self.subTest(prompt=prompt):
                 self.manifest["interface"]["defaultPrompt"] = [prompt]
                 self.assertTrue(self.validate(self.manifest))
-        for prompt in ("Find the brief for writer@example.com", "Explain the @ symbol", "Read my café draft"):
+        for prompt in (
+            "Find the brief for writer@example.com", "Explain the @ symbol", "Read my café draft",
+            "Read https://example.com/@author", "Read https://example.com/?writer=@author",
+            "Read https://example.com/#@author", "Read http://[2001:db8::1]/@author",
+        ):
             with self.subTest(prompt=prompt):
                 self.manifest["interface"]["defaultPrompt"] = [prompt]
                 self.assertEqual(self.validate(self.manifest), [])
