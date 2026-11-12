@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import subprocess
 import sys
@@ -133,6 +134,66 @@ class CurrentRepoContract(unittest.TestCase):
         )
         self.assertNotEqual(mismatch.returncode, 0)
         self.assertIn("does not match tag v9.9.9", mismatch.stdout)
+
+
+class OpenAIDirectoryMetadata(unittest.TestCase):
+    def setUp(self) -> None:
+        self.manifest = vm.load(".codex-plugin/plugin.json")
+        vm.errors.clear()
+
+    def validate(self, manifest: dict) -> list[str]:
+        vm.errors.clear()
+        vm.check_openai_metadata(".codex-plugin/plugin.json", manifest)
+        return list(vm.errors)
+
+    def test_shipped_metadata_and_explicit_mcp_path_are_valid(self) -> None:
+        self.assertEqual(self.validate(self.manifest), [])
+        self.assertTrue((ROOT / self.manifest["mcpServers"]).is_file())
+
+    def test_required_listing_text_and_urls_cannot_be_omitted(self) -> None:
+        for key in (*vm.OPENAI_TEXT_LIMITS, *vm.OPENAI_LISTING_URLS):
+            with self.subTest(key=key):
+                manifest = copy.deepcopy(self.manifest)
+                manifest["interface"].pop(key)
+                self.assertTrue(self.validate(manifest))
+
+    def test_directory_subtitle_boundary_is_thirty_characters(self) -> None:
+        self.manifest["interface"]["shortDescription"] = "x" * 30
+        self.assertEqual(self.validate(self.manifest), [])
+        self.manifest["interface"]["shortDescription"] += "x"
+        self.assertTrue(self.validate(self.manifest))
+
+    def test_public_policy_urls_cannot_contain_credentials_or_use_http(self) -> None:
+        for url in ("http://example.com/terms", "https://user:password@example.com/terms", "not-a-url"):
+            with self.subTest(url=url):
+                self.manifest["interface"]["termsOfServiceURL"] = url
+                self.assertTrue(self.validate(self.manifest))
+
+    def test_capabilities_accept_empty_list_and_reject_invalid_labels(self) -> None:
+        self.manifest["interface"]["capabilities"] = []
+        self.assertEqual(self.validate(self.manifest), [])
+        for value in (None, "Read", [" "], ["x" * 121], ["Read"] * 21):
+            with self.subTest(value=value):
+                self.manifest["interface"]["capabilities"] = value
+                self.assertTrue(self.validate(self.manifest))
+
+    def test_composer_icon_must_be_an_included_asset(self) -> None:
+        for value in (None, "./missing.png", "../README.md", "https://example.com/icon.png"):
+            with self.subTest(value=value):
+                self.manifest["interface"]["composerIcon"] = value
+                self.assertTrue(self.validate(self.manifest))
+
+    def test_starter_prompt_count_and_length_limits(self) -> None:
+        self.manifest["interface"]["defaultPrompt"] = "x" * 128
+        self.assertEqual(self.validate(self.manifest), [])
+        for value in ("x" * 129, ["prompt"] * 4):
+            with self.subTest(value=value):
+                self.manifest["interface"]["defaultPrompt"] = value
+                self.assertTrue(self.validate(self.manifest))
+
+    def test_setup_entry_must_reference_an_included_skill(self) -> None:
+        self.manifest["extensions"]["com.openai"]["onboardingSkill"] = "./README.md"
+        self.assertTrue(self.validate(self.manifest))
 
 
 if __name__ == "__main__":

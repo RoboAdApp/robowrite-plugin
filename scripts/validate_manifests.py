@@ -14,6 +14,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -22,6 +23,17 @@ MCP_URL = "https://mcp.robowrite.ai/mcp"
 MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 REGISTRY_NAME = "ai.robowrite/mcp"
 REGISTRY_DESCRIPTION_MAX = 100
+OPENAI_TEXT_LIMITS = {
+    "displayName": 30,
+    "shortDescription": 30,
+    "longDescription": 4000,
+    "developerName": 80,
+    "category": None,
+}
+OPENAI_LISTING_URLS = (
+    "websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"
+)
+OPENAI_REQUIRED_ICONS = ("logo", "composerIcon")
 
 # Every file that carries the release version. They must all agree.
 VERSIONED = [
@@ -94,11 +106,75 @@ def check_references(relative: str, manifest: dict) -> None:
     references = [(key, manifest.get(key)) for key in ("mcpServers", "logo", "skills")]
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        references.append(("interface.logo", interface.get("logo")))
+        references.extend(
+            (f"interface.{key}", interface.get(key))
+            for key in (*OPENAI_REQUIRED_ICONS, "logoDark", "composerIconDark")
+        )
     for key, value in references:
         if isinstance(value, str) and not value.startswith(("http://", "https://")):
             if not (ROOT / value).exists():
                 fail(f"{relative}: `{key}` points at missing path {value}")
+
+
+def check_openai_metadata(relative: str, manifest: dict) -> None:
+    """Check final public-directory fields for the shipped Codex package."""
+    interface = manifest.get("interface")
+    if not isinstance(interface, dict):
+        fail(f"{relative}: interface must be an object")
+        return
+    for key, limit in OPENAI_TEXT_LIMITS.items():
+        value = interface.get(key)
+        if not isinstance(value, str) or not value.strip():
+            fail(f"{relative}: interface.{key} is required")
+        elif limit is not None and len(value) > limit:
+            fail(f"{relative}: interface.{key} exceeds {limit} characters")
+    for key in OPENAI_LISTING_URLS:
+        value = interface.get(key)
+        try:
+            url = urlsplit(value) if isinstance(value, str) else None
+            valid = bool(
+                url and url.scheme == "https" and url.hostname
+                and url.username is None and url.password is None
+                and not url.fragment and len(value) <= 1024
+            )
+        except ValueError:
+            valid = False
+        if not valid:
+            fail(f"{relative}: interface.{key} must be a public HTTPS URL")
+    capabilities = interface.get("capabilities")
+    if (
+        not isinstance(capabilities, list) or len(capabilities) > 20
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 120
+               for value in capabilities)
+    ):
+        fail(f"{relative}: interface.capabilities must contain at most 20 nonempty labels of 120 characters")
+    for key in OPENAI_REQUIRED_ICONS:
+        value = interface.get(key)
+        if (
+            not isinstance(value, str) or not value.startswith("./")
+            or not (ROOT / value).resolve().is_relative_to(ROOT.resolve())
+            or not (ROOT / value).is_file()
+        ):
+            fail(f"{relative}: interface.{key} must reference an included asset")
+    prompts = interface.get("defaultPrompt", [])
+    if isinstance(prompts, str):
+        prompts = [prompts]
+    if (
+        not isinstance(prompts, list) or len(prompts) > 3
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 128
+               for value in prompts)
+    ):
+        fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
+    extensions = manifest.get("extensions", {})
+    openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else {}
+    if isinstance(openai, dict) and "onboardingSkill" in openai:
+        value = openai["onboardingSkill"]
+        if (
+            not isinstance(value, str) or not value.startswith("./skills/")
+            or not (ROOT / value).resolve().is_relative_to((ROOT / "skills").resolve())
+            or not (ROOT / value).is_file() or Path(value).name != "SKILL.md"
+        ):
+            fail(f"{relative}: onboardingSkill must reference an included skill")
 
 
 def check_skills() -> None:
@@ -142,6 +218,8 @@ def main() -> int:
                 versions[relative] = version
         if relative.endswith("plugin.json"):
             check_references(relative, manifest)
+        if relative == ".codex-plugin/plugin.json":
+            check_openai_metadata(relative, manifest)
 
     if len(set(versions.values())) > 1:
         detail = ", ".join(f"{path}={version}" for path, version in versions.items())

@@ -13,5 +13,7 @@
 	],
 	"version": "0.3.0",
 	"license": "MIT",
-	"repository": "https://github.com/RoboAdApp/robowrite-plugin"
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
+	"privacyPolicyUrl": "https://www.robowrite.ai/privacy",
+	"icon": "./assets/robowrite-r.png"
 }
