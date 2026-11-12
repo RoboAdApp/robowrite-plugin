@@ -25,6 +25,10 @@ def catalog_payload() -> dict:
     return json.loads(CATALOG.read_text())
 
 
+def rpc_result(result: dict) -> dict:
+    return {"jsonrpc": "2.0", "id": sm.MCP_REQUEST_ID, "result": result}
+
+
 class BoomOpener:
     def __init__(self, error: BaseException) -> None:
         self.error = error
@@ -273,29 +277,54 @@ class EditorialCatalogContract(unittest.TestCase):
     def test_pagination_finds_required_tools_without_a_fixed_catalog_size(self) -> None:
         first, second = self.tools[:2], self.tools[2:]
         pages = [
-            (200, {}, json.dumps({"result": {"tools": first, "nextCursor": "next"}})),
-            (200, {}, json.dumps({"result": {"tools": second}})),
+            (200, {}, json.dumps(rpc_result({"tools": first, "nextCursor": "next"}))),
+            (200, {}, json.dumps(rpc_result({"tools": second}))),
         ]
         with mock.patch.object(sm, "mcp_post", side_effect=pages):
             sm.check_public_tool_catalog()
         self.assertEqual(sm.failures, [])
 
     def test_malformed_catalog_and_repeated_cursor_are_failures(self) -> None:
-        for response in [
-            (200, {}, "{}"),
-            (200, {}, json.dumps({"result": {"tools": [], "nextCursor": "again"}})),
-        ]:
-            with self.subTest(response=response), mock.patch.object(sm, "mcp_post", return_value=response):
-                sm.check_public_tool_catalog()
-                self.assertTrue(sm.failures)
-                sm.failures.clear()
+        with mock.patch.object(sm, "mcp_post", return_value=(200, {}, "{}")):
+            sm.check_public_tool_catalog()
+        self.assertTrue(any("expected a tool catalog" in failure for failure in sm.failures))
+        sm.failures.clear()
+        repeated = (200, {}, json.dumps(rpc_result({"tools": [], "nextCursor": "again"})))
+        with mock.patch.object(sm, "mcp_post", side_effect=[repeated, repeated]) as post:
+            sm.check_public_tool_catalog()
+        self.assertIn("unauthenticated tools/list returned an invalid or repeated pagination cursor", sm.failures)
+        self.assertEqual(post.call_count, 2)
 
     def test_unbounded_unique_cursors_fail_at_the_catalog_limit(self) -> None:
-        pages = iter((200, {}, json.dumps({"result": {"tools": [], "nextCursor": str(page)}})) for page in range(3))
+        pages = iter((200, {}, json.dumps(rpc_result({"tools": [], "nextCursor": str(page)}))) for page in range(3))
         with mock.patch.object(sm, "MAX_CATALOG_PAGES", 2), mock.patch.object(sm, "mcp_post", side_effect=lambda *args: next(pages)):
             sm.check_public_tool_catalog()
         self.assertTrue(any("2-page catalog limit" in message for message in sm.failures))
         self.assertEqual(json.loads(next(pages)[2])["result"]["nextCursor"], "2")
+
+    def test_catalog_correlates_json_and_sse_responses_to_the_numeric_request(self) -> None:
+        valid = rpc_result({"tools": self.tools})
+        variants = []
+        for request_id in (None, True, "1", 2):
+            payload = copy.deepcopy(valid)
+            if request_id is None:
+                payload.pop("id")
+            else:
+                payload["id"] = request_id
+            variants.append((payload, False))
+        variants.append(({**valid, "jsonrpc": "1.0"}, False))
+        variants.append(({**valid, "error": {"code": -32600, "message": "Invalid Request"}}, False))
+        variants.extend([(valid, True), ({**valid, "id": 1.0}, True)])
+        for payload, accepted in variants:
+            for sse in (False, True):
+                body = json.dumps(payload)
+                headers = {"Content-Type": "text/event-stream" if sse else "application/json"}
+                if sse:
+                    body = "data: " + body + "\n\n"
+                with self.subTest(id=payload.get("id"), version=payload.get("jsonrpc"), error="error" in payload, sse=sse), mock.patch.object(sm, "mcp_post", return_value=(200, headers, body)):
+                    sm.check_public_tool_catalog()
+                    self.assertEqual(not sm.failures, accepted)
+                    sm.failures.clear()
 
     def test_sse_catalog_skips_notifications_and_matches_response_across_pages(self) -> None:
         self.tools[0]["description"] = "Read account\u2028without modifying it"

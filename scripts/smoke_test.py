@@ -29,6 +29,8 @@ RESOURCE_METADATA_URL = urllib.parse.urlunsplit(
 TIMEOUT = 20
 MAX_CATALOG_PAGES = 100
 USER_AGENT = "robowrite-plugin-smoke/1"
+JSONRPC_VERSION = "2.0"
+MCP_REQUEST_ID = 1
 
 # A public Client ID Metadata Document that is known to be well formed. Used
 # only to check that the authorization server can resolve such documents.
@@ -119,10 +121,19 @@ def as_json(body: str):
 
 
 def mcp_response(headers: dict, body: str):
-    """Read JSON or the matching JSON-RPC response from an SSE body."""
+    """Read the matching JSON-RPC response from JSON or SSE."""
+    def matching_response(payload):
+        if (
+            isinstance(payload, dict) and payload.get("jsonrpc") == JSONRPC_VERSION
+            and type(payload.get("id")) in (int, float) and payload["id"] == MCP_REQUEST_ID
+            and (("result" in payload) != ("error" in payload))
+        ):
+            return payload
+        return None
+
     content_type = next((value for key, value in headers.items() if key.lower() == "content-type"), "")
     if content_type.split(";", 1)[0].strip().lower() != "text/event-stream":
-        return as_json(body)
+        return matching_response(as_json(body))
     data = []
     # SSE line boundaries are CR/LF only; Unicode separators may be JSON text.
     # Discard the final unterminated line; EOF must not dispatch an event.
@@ -132,8 +143,9 @@ def mcp_response(headers: dict, body: str):
                 payload = as_json("\n".join(data))
                 if not isinstance(payload, dict):
                     return None
-                if type(payload.get("id")) is int and payload["id"] == 1 and ("result" in payload or "error" in payload):
-                    return payload
+                response = matching_response(payload)
+                if response is not None:
+                    return response
             data = []
         elif line.startswith("data:"):
             value = line[5:]
@@ -158,7 +170,7 @@ def check_resource_metadata() -> str | None:
 
 
 def mcp_post(method: str, params: dict | None = None):
-    payload: dict = {"jsonrpc": "2.0", "id": 1, "method": method}
+    payload: dict = {"jsonrpc": JSONRPC_VERSION, "id": MCP_REQUEST_ID, "method": method}
     if params is not None:
         payload["params"] = params
     return fetch(
