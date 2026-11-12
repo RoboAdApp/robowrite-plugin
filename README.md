@@ -10,6 +10,8 @@ The verification receipts below are historical, from the previous endpoint; they
 
 ## What is included
 
+This repository contains the client formats below. A platform-specific submission ZIP includes only that platform's manifest and referenced components.
+
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
