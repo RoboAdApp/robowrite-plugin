@@ -147,8 +147,10 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         value = interface.get(key)
         try:
             url = urlsplit(value) if isinstance(value, str) else None
+            port = url.port if url else None
             valid = bool(
                 url and url.scheme == "https" and url.hostname
+                and (port is None or 0 <= port <= 65535)
                 and url.username is None and url.password is None
                 and not url.fragment and len(value) <= 1024
             )

@@ -272,6 +272,18 @@ class EditorialCatalogContract(unittest.TestCase):
                 self.assertTrue(any("expected a tool catalog" in message for message in sm.failures))
                 sm.failures.clear()
 
+    def test_sse_requires_a_real_blank_line_delimiter_before_dispatch(self) -> None:
+        event = "data: " + json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"tools": self.tools}})
+        for ending in ("", "\n", "\r\n", "\r"):
+            with self.subTest(ending=ending), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, event + ending)):
+                sm.check_public_tool_catalog()
+                self.assertTrue(any("expected a tool catalog" in message for message in sm.failures))
+                sm.failures.clear()
+        for ending in ("\n\n", "\r\n\r\n", "\r\r"):
+            with self.subTest(ending=ending), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, "\ufeff" + event + ending)):
+                sm.check_public_tool_catalog()
+                self.assertEqual(sm.failures, [])
+
 
 if __name__ == "__main__":
     unittest.main()

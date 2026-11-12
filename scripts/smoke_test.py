@@ -124,7 +124,8 @@ def mcp_response(headers: dict, body: str):
         return as_json(body)
     data = []
     # SSE line boundaries are CR/LF only; Unicode separators may be JSON text.
-    for line in [*body.replace("\r\n", "\n").replace("\r", "\n").split("\n"), ""]:
+    # Discard the final unterminated line; EOF must not dispatch an event.
+    for line in body.removeprefix("\ufeff").replace("\r\n", "\n").replace("\r", "\n").split("\n")[:-1]:
         if not line:
             if data:
                 payload = as_json("\n".join(data))

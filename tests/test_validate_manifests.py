@@ -164,10 +164,12 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
         self.assertTrue(self.validate(self.manifest))
 
     def test_public_policy_urls_cannot_contain_credentials_or_use_http(self) -> None:
-        for url in ("http://example.com/terms", "https://user:password@example.com/terms", "not-a-url"):
+        for url in ("http://example.com/terms", "https://user:password@example.com/terms", "not-a-url", "https://example.com:invalid/terms", "https://example.com:99999/terms"):
             with self.subTest(url=url):
                 self.manifest["interface"]["termsOfServiceURL"] = url
                 self.assertTrue(self.validate(self.manifest))
+        self.manifest["interface"]["termsOfServiceURL"] = "https://example.com:443/terms"
+        self.assertEqual(self.validate(self.manifest), [])
 
     def test_capabilities_accept_empty_list_and_reject_invalid_labels(self) -> None:
         self.manifest["interface"]["capabilities"] = []
