@@ -1,7 +1,7 @@
 {
 	"name": "robowrite",
 	"version": "0.3.0",
-	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
 	"author": {
 		"name": "M Powered Ventures",
 		"email": "hello@robowrite.ai",
