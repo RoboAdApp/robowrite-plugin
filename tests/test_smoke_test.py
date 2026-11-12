@@ -157,6 +157,18 @@ class EditorialCatalogContract(unittest.TestCase):
         self.tool("edit_draft")["inputSchema"]["properties"]["body"]["properties"]["future_option"] = {"type": "boolean"}
         self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
 
+    def test_equivalent_nullable_type_arrays_are_allowed(self) -> None:
+        for nested in (False, True):
+            with self.subTest(nested=nested):
+                tools = copy.deepcopy(self.tools)
+                edit = next(tool for tool in tools if tool["name"] == "edit_draft")
+                content = next(tool for tool in tools if tool["name"] == "get_content")
+                string = {"type": ["string", "null"]}
+                integer = {"type": ["integer", "null"], "minimum": 1}
+                edit["inputSchema"]["properties"]["body"]["properties"]["markdown_body"] = {"anyOf": [string]} if nested else string
+                content["inputSchema"]["properties"]["version"] = {"anyOf": [integer]} if nested else integer
+                self.assertEqual(sm.editorial_catalog_errors(tools), [])
+
     def test_missing_tool_names_the_unavailable_operation(self) -> None:
         tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
         self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))

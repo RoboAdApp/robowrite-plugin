@@ -242,6 +242,52 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
                 manifest["interface"][key] = ["Plan\ncontent"]
                 self.assertTrue(self.validate(manifest))
 
+    def test_listing_controls_fail_without_rejecting_unicode_or_description_newlines(self) -> None:
+        for key in ("displayName", "shortDescription", "longDescription", "developerName", "capabilities", "defaultPrompt"):
+            for control in ("\t", "\x00", "\x7f", "\x85", "\ud800", "\u2028", "\u2029"):
+                with self.subTest(key=key, control=control):
+                    manifest = copy.deepcopy(self.manifest)
+                    text = "Plan" + control + "content"
+                    manifest["interface"][key] = [text] if key in ("capabilities", "defaultPrompt") else text
+                    self.assertTrue(self.validate(manifest))
+        self.manifest["interface"]["developerName"] = "مهدی\u200cزاره"
+        self.manifest["interface"]["longDescription"] = "Caf\u00e9 content\r\nفناوری\nTeam 👩\u200d💻"
+        self.manifest["interface"]["defaultPrompt"] = ["Read the café brief"]
+        self.assertEqual(self.validate(self.manifest), [])
+
+    def test_url_hosts_preserve_valid_forms_and_reject_raw_or_escaped_invalid_characters(self) -> None:
+        valid = (
+            "https://bücher.example/terms", "https://xn--bcher-kva.example/terms",
+            "https://192.0.2.1:443/terms", "https://[2001:db8::1]:443/terms",
+            "https://%65xample.com/terms", "https://example.com./terms",
+            "https://service_name.example/terms", "https://example.com/terms%20and%20conditions",
+        )
+        invalid = (
+            "https://exa mple.com/terms", "https://exa\tmple.com/terms",
+            "https://example.com/te\nrms", "https://exa%20mple.com/terms",
+            "https://exa%0ample.com/terms", "https://exa%2fmple.com/terms",
+            "https://exa|mple.com/terms", "https://exa{mple.com/terms",
+            "https://exa%mple.com/terms", "https://%ff.example/terms",
+        )
+        for url in valid:
+            with self.subTest(valid=url):
+                self.manifest["interface"]["termsOfServiceURL"] = url
+                self.assertEqual(self.validate(self.manifest), [])
+        for url in invalid:
+            with self.subTest(invalid=url):
+                self.manifest["interface"]["termsOfServiceURL"] = url
+                self.assertTrue(self.validate(self.manifest))
+
+    def test_starter_mentions_fail_but_emails_and_ordinary_at_symbols_remain_valid(self) -> None:
+        for prompt in ("@robowrite show my drafts", "Open (@robowrite) and read my brief"):
+            with self.subTest(prompt=prompt):
+                self.manifest["interface"]["defaultPrompt"] = [prompt]
+                self.assertTrue(self.validate(self.manifest))
+        for prompt in ("Find the brief for writer@example.com", "Explain the @ symbol", "Read my café draft"):
+            with self.subTest(prompt=prompt):
+                self.manifest["interface"]["defaultPrompt"] = [prompt]
+                self.assertEqual(self.validate(self.manifest), [])
+
 
 if __name__ == "__main__":
     unittest.main()

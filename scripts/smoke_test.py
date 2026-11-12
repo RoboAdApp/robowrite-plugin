@@ -204,9 +204,15 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         properties = schema.get("properties", {})
         value = properties.get(key) if isinstance(properties, dict) else None
         choices = value.get("anyOf", []) if isinstance(value, dict) else []
-        types = {choice["type"] for choice in choices if isinstance(choice, dict) and isinstance(choice.get("type"), str)} if isinstance(choices, list) else set()
-        if isinstance(value, dict) and isinstance(value.get("type"), str):
-            types.add(value["type"])
+        types = set()
+        for declaration in [value, *(choices if isinstance(choices, list) else [])]:
+            if not isinstance(declaration, dict):
+                continue
+            declared = declaration.get("type")
+            if isinstance(declared, str):
+                types.add(declared)
+            elif isinstance(declared, list):
+                types.update(kind for kind in declared if isinstance(kind, str))
         if kind not in types or (nullable and "null" not in types):
             errors.append(f"{location}.{key} must retain a " + ("nullable " if nullable else "") + f"{kind} payload schema")
 

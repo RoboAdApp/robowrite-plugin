@@ -9,13 +9,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import re
 import sys
 import unicodedata
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -45,6 +46,31 @@ OPENAI_CATEGORIES = {
 
 def single_line(value: str) -> bool:
     return not any(char in value for char in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
+
+
+def supported_text(value: str, *, multiline: bool = False) -> bool:
+    """Reject documented controls without excluding language/emoji joiners."""
+    return all(
+        (multiline and char in "\r\n")
+        or unicodedata.category(char) not in {"Cc", "Cs", "Zl", "Zp"}
+        for char in value
+    )
+
+
+def valid_url_host(host: str, *, bracketed: bool = False) -> bool:
+    """Check host syntax only; preserve IDNA, escaped reg-names and IPs."""
+    try:
+        decoded = unquote(host, errors="strict")
+        if not decoded or not supported_text(decoded) or any(char.isspace() for char in decoded):
+            return False
+        if bracketed:
+            ipaddress.IPv6Address(decoded)
+            return True
+        ascii_host = decoded.encode("idna").decode("ascii")
+        # RFC3986 reg-name characters after percent-decoding and IDNA.
+        return re.fullmatch(r"[A-Za-z0-9._~!$&'()*+,;=-]+", ascii_host) is not None
+    except (ValueError, UnicodeError):
+        return False
 
 # Every file that carries the release version. They must all agree.
 VERSIONED = [
@@ -141,6 +167,8 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
             fail(f"{relative}: interface.{key} exceeds {limit} characters")
         elif key != "longDescription" and not single_line(value):
             fail(f"{relative}: interface.{key} must fit on one line")
+        elif not supported_text(value, multiline=key == "longDescription"):
+            fail(f"{relative}: interface.{key} contains unsupported control characters")
     if isinstance(interface.get("category"), str) and interface["category"] not in OPENAI_CATEGORIES:
         fail(f"{relative}: interface.category must be a supported directory category")
     for key in OPENAI_LISTING_URLS:
@@ -150,6 +178,9 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
             port = url.port if url else None
             valid = bool(
                 url and url.scheme == "https" and url.hostname
+                and supported_text(value) and not any(char.isspace() for char in value)
+                and "\\" not in value
+                and valid_url_host(url.hostname, bracketed=url.netloc.startswith("["))
                 and (port is None or 0 <= port <= 65535)
                 and url.username is None and url.password is None
                 and not url.fragment and len(value) <= 1024
@@ -161,7 +192,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
     capabilities = interface.get("capabilities")
     if (
         not isinstance(capabilities, list) or len(capabilities) > 20
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 120 or not single_line(value)
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 120 or not single_line(value) or not supported_text(value)
                for value in capabilities)
     ):
         fail(f"{relative}: interface.capabilities must contain at most 20 nonempty labels of 120 characters")
@@ -181,12 +212,14 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         prompts = [prompts]
     if (
         not isinstance(prompts, list) or len(prompts) > 3
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 128 or not single_line(value)
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 128 or not single_line(value) or not supported_text(value)
                for value in prompts)
     ):
         fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
     elif len({" ".join(unicodedata.normalize("NFKC", value).split()) for value in prompts}) != len(prompts):
         fail(f"{relative}: interface.defaultPrompt must be unique after Unicode and whitespace normalization")
+    elif any(re.search(r"(?<![\w@])@\w[\w.-]*", value) for value in prompts):
+        fail(f"{relative}: interface.defaultPrompt must not contain MCP server @mentions")
     extensions = manifest.get("extensions", {})
     openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else {}
     if isinstance(openai, dict) and "onboardingSkill" in openai:
