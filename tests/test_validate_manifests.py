@@ -295,6 +295,7 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
             "Find the brief for writer@example.com", "Explain the @ symbol", "Read my café draft",
             "Read https://example.com/@author", "Read https://example.com/?writer=@author",
             "Read https://example.com/#@author", "Read http://[2001:db8::1]/@author",
+            "Read HTTPS://example.com/@author", "Read HTTP://example.com/?writer=@author",
         ):
             with self.subTest(prompt=prompt):
                 self.manifest["interface"]["defaultPrompt"] = [prompt]

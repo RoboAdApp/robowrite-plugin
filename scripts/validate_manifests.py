@@ -93,7 +93,7 @@ def contains_mcp_mention(value: str) -> bool:
 
     # Square brackets are allowed only around an IP literal, not as trailing
     # Markdown delimiters; parentheses and angle brackets also end the span.
-    text = re.sub(r"\bhttps?://(?:\[[^\]\s<>()]+\]|[^\s<>()\[\]{}]+)[^\s<>()\[\]{}]*", ordinary_url, value)
+    text = re.sub(r"\bhttps?://(?:\[[^\]\s<>()]+\]|[^\s<>()\[\]{}]+)[^\s<>()\[\]{}]*", ordinary_url, value, flags=re.IGNORECASE)
     return re.search(r"(?<![\w@])@\w[\w.-]*", text) is not None
 
 # Every file that carries the release version. They must all agree.
