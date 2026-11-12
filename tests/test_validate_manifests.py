@@ -195,6 +195,51 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
         self.manifest["extensions"]["com.openai"]["onboardingSkill"] = "./README.md"
         self.assertTrue(self.validate(self.manifest))
 
+    def test_category_uses_supported_directory_titles(self) -> None:
+        for category in ("Writing", "productivity"):
+            with self.subTest(category=category):
+                self.manifest["interface"]["category"] = category
+                self.assertTrue(self.validate(self.manifest))
+        for category in ("Productivity", "Business & Operations", "Other"):
+            self.manifest["interface"]["category"] = category
+            self.assertEqual(self.validate(self.manifest), [])
+
+    def test_optional_dark_icons_stay_optional_and_must_be_included_when_present(self) -> None:
+        self.assertEqual(self.validate(self.manifest), [])
+        for key in ("logoDark", "composerIconDark"):
+            for value in ("https://example.com/icon.svg", "./missing.svg", "../icon.svg", "./README.md", None):
+                with self.subTest(key=key, value=value):
+                    manifest = copy.deepcopy(self.manifest)
+                    manifest["interface"][key] = value
+                    self.assertTrue(self.validate(manifest))
+            self.manifest["interface"][key] = self.manifest["interface"]["logo"]
+        self.assertEqual(self.validate(self.manifest), [])
+
+    def test_single_line_fields_reject_line_breaks_but_description_allows_them(self) -> None:
+        for key in ("displayName", "shortDescription", "developerName"):
+            for separator in ("\n", "\r\n", "\u2028", "\x85"):
+                with self.subTest(key=key, separator=separator):
+                    manifest = copy.deepcopy(self.manifest)
+                    manifest["interface"][key] = "Plan" + separator + "content"
+                    self.assertTrue(self.validate(manifest))
+        self.manifest["interface"]["longDescription"] = "Plan\ncontent"
+        self.assertEqual(self.validate(self.manifest), [])
+
+    def test_starter_prompts_reject_unicode_and_whitespace_equivalent_duplicates(self) -> None:
+        for prompts in (["Check my account", "Check  my\u00a0account"], ["Caf\u00e9 drafts", "Cafe\u0301 drafts"], ["Plan content", "\uff30lan content"]):
+            with self.subTest(prompts=prompts):
+                self.manifest["interface"]["defaultPrompt"] = prompts
+                self.assertTrue(self.validate(self.manifest))
+        self.manifest["interface"]["defaultPrompt"] = ["Check my account", "Read a brief"]
+        self.assertEqual(self.validate(self.manifest), [])
+
+    def test_capabilities_and_prompts_must_also_fit_one_line(self) -> None:
+        for key in ("capabilities", "defaultPrompt"):
+            with self.subTest(key=key):
+                manifest = copy.deepcopy(self.manifest)
+                manifest["interface"][key] = ["Plan\ncontent"]
+                self.assertTrue(self.validate(manifest))
+
 
 if __name__ == "__main__":
     unittest.main()

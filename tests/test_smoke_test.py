@@ -178,6 +178,19 @@ class EditorialCatalogContract(unittest.TestCase):
         body["required"].append("new_requirement")
         self.assertTrue(any("new_requirement" in error for error in sm.editorial_catalog_errors(self.tools)))
 
+    def test_documented_edit_and_section_rewrite_payloads_cannot_disappear_or_change_type(self) -> None:
+        for name, keys in (("edit_draft", ("markdown_body", "target", "replacement")), ("rewrite_draft", ("section_id",))):
+            for key in keys:
+                for replacement in (None, {"type": "integer"}, {"anyOf": [{"type": "null"}]}):
+                    with self.subTest(name=name, key=key, replacement=replacement):
+                        tools = copy.deepcopy(self.tools)
+                        properties = next(tool for tool in tools if tool["name"] == name)["inputSchema"]["properties"]["body"]["properties"]
+                        if replacement is None:
+                            properties.pop(key)
+                        else:
+                            properties[key] = replacement
+                        self.assertTrue(any(f"{name}.body.{key}" in error for error in sm.editorial_catalog_errors(tools)))
+
     def test_replay_identifier_type_and_uuid_format_are_preserved(self) -> None:
         request_id = self.tool("decide_review")["inputSchema"]["properties"]["body"]["properties"]["request_id"]
         for value in ({"type": "integer"}, {"type": "string"}):
@@ -227,6 +240,35 @@ class EditorialCatalogContract(unittest.TestCase):
             with self.subTest(response=response), mock.patch.object(sm, "mcp_post", return_value=response):
                 sm.check_public_tool_catalog()
                 self.assertTrue(sm.failures)
+                sm.failures.clear()
+
+    def test_unbounded_unique_cursors_fail_at_the_catalog_limit(self) -> None:
+        pages = iter((200, {}, json.dumps({"result": {"tools": [], "nextCursor": str(page)}})) for page in range(3))
+        with mock.patch.object(sm, "MAX_CATALOG_PAGES", 2), mock.patch.object(sm, "mcp_post", side_effect=lambda *args: next(pages)):
+            sm.check_public_tool_catalog()
+        self.assertTrue(any("2-page catalog limit" in message for message in sm.failures))
+        self.assertEqual(json.loads(next(pages)[2])["result"]["nextCursor"], "2")
+
+    def test_sse_catalog_skips_notifications_and_matches_response_across_pages(self) -> None:
+        pages = []
+        for tools, cursor in ((self.tools[:2], "next"), (self.tools[2:], None)):
+            result = {"tools": tools}
+            if cursor:
+                result["nextCursor"] = cursor
+            response = json.dumps({"jsonrpc": "2.0", "id": 1, "result": result}, indent=2)
+            events = ': keepalive\r\n\r\ndata: {"jsonrpc":"2.0","method":"notifications/progress"}\r\n\r\n'
+            events += 'data: {"jsonrpc":"2.0","id":2,"result":{"tools":[]}}\r\n\r\n'
+            events += "\r\n".join("data: " + line for line in response.splitlines()) + "\r\n\r\n"
+            pages.append((200, {"content-type": "text/event-stream; charset=utf-8"}, events))
+        with mock.patch.object(sm, "mcp_post", side_effect=pages):
+            sm.check_public_tool_catalog()
+        self.assertEqual(sm.failures, [])
+
+    def test_sse_malformed_or_unmatched_response_is_a_catalog_failure(self) -> None:
+        for body in ('data: invalid\n\n', 'data: {"id":2,"result":{"tools":[]}}\n\n', ': keepalive\n\n'):
+            with self.subTest(body=body), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, body)):
+                sm.check_public_tool_catalog()
+                self.assertTrue(any("expected a tool catalog" in message for message in sm.failures))
                 sm.failures.clear()
 
 

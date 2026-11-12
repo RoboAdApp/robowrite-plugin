@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -34,6 +35,16 @@ OPENAI_LISTING_URLS = (
     "websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"
 )
 OPENAI_REQUIRED_ICONS = ("logo", "composerIcon")
+OPENAI_OPTIONAL_ICONS = ("logoDark", "composerIconDark")
+OPENAI_CATEGORIES = {
+    "Productivity", "Creativity", "Developer Tools", "Business & Operations",
+    "Data & Analytics", "Communication", "Education & Research", "Security",
+    "Finance", "Healthcare", "Travel", "Entertainment", "Other",
+}
+
+
+def single_line(value: str) -> bool:
+    return not any(char in value for char in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
 
 # Every file that carries the release version. They must all agree.
 VERSIONED = [
@@ -128,6 +139,10 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
             fail(f"{relative}: interface.{key} is required")
         elif limit is not None and len(value) > limit:
             fail(f"{relative}: interface.{key} exceeds {limit} characters")
+        elif key != "longDescription" and not single_line(value):
+            fail(f"{relative}: interface.{key} must fit on one line")
+    if isinstance(interface.get("category"), str) and interface["category"] not in OPENAI_CATEGORIES:
+        fail(f"{relative}: interface.category must be a supported directory category")
     for key in OPENAI_LISTING_URLS:
         value = interface.get(key)
         try:
@@ -144,14 +159,17 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
     capabilities = interface.get("capabilities")
     if (
         not isinstance(capabilities, list) or len(capabilities) > 20
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 120
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 120 or not single_line(value)
                for value in capabilities)
     ):
         fail(f"{relative}: interface.capabilities must contain at most 20 nonempty labels of 120 characters")
-    for key in OPENAI_REQUIRED_ICONS:
+    for key in (*OPENAI_REQUIRED_ICONS, *OPENAI_OPTIONAL_ICONS):
+        if key in OPENAI_OPTIONAL_ICONS and key not in interface:
+            continue
         value = interface.get(key)
         if (
             not isinstance(value, str) or not value.startswith("./")
+            or Path(value).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp", ".svg"}
             or not (ROOT / value).resolve().is_relative_to(ROOT.resolve())
             or not (ROOT / value).is_file()
         ):
@@ -161,10 +179,12 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         prompts = [prompts]
     if (
         not isinstance(prompts, list) or len(prompts) > 3
-        or any(not isinstance(value, str) or not value.strip() or len(value) > 128
+        or any(not isinstance(value, str) or not value.strip() or len(value) > 128 or not single_line(value)
                for value in prompts)
     ):
         fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
+    elif len({" ".join(unicodedata.normalize("NFKC", value).split()) for value in prompts}) != len(prompts):
+        fail(f"{relative}: interface.defaultPrompt must be unique after Unicode and whitespace normalization")
     extensions = manifest.get("extensions", {})
     openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else {}
     if isinstance(openai, dict) and "onboardingSkill" in openai:

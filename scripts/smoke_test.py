@@ -27,6 +27,7 @@ RESOURCE_METADATA_URL = urllib.parse.urlunsplit(
     (_resource.scheme, _resource.netloc, f"/.well-known/oauth-protected-resource{_resource.path}", "", "")
 )
 TIMEOUT = 20
+MAX_CATALOG_PAGES = 100
 USER_AGENT = "robowrite-plugin-smoke/1"
 
 # A public Client ID Metadata Document that is known to be well formed. Used
@@ -116,6 +117,27 @@ def as_json(body: str):
         return None
 
 
+def mcp_response(headers: dict, body: str):
+    """Read JSON or the matching JSON-RPC response from an SSE body."""
+    content_type = next((value for key, value in headers.items() if key.lower() == "content-type"), "")
+    if content_type.split(";", 1)[0].strip().lower() != "text/event-stream":
+        return as_json(body)
+    data = []
+    for line in [*body.splitlines(), ""]:
+        if not line:
+            if data:
+                payload = as_json("\n".join(data))
+                if not isinstance(payload, dict):
+                    return None
+                if type(payload.get("id")) is int and payload["id"] == 1 and ("result" in payload or "error" in payload):
+                    return payload
+            data = []
+        elif line.startswith("data:"):
+            value = line[5:]
+            data.append(value[1:] if value.startswith(" ") else value)
+    return None
+
+
 def check_resource_metadata() -> str | None:
     status, _, body = fetch(RESOURCE_METADATA_URL)
     metadata = as_json(body)
@@ -176,6 +198,16 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         elif extra := set(keys) - allowed:
             errors.append(f"{location} adds undocumented required fields: {', '.join(sorted(extra))}")
 
+    def optional_string(schema: dict, key: str, location: str) -> None:
+        properties = schema.get("properties", {})
+        value = properties.get(key) if isinstance(properties, dict) else None
+        choices = value.get("anyOf", []) if isinstance(value, dict) else []
+        if not isinstance(value, dict) or not (
+            value.get("type") == "string"
+            or (isinstance(choices, list) and any(isinstance(choice, dict) and choice.get("type") == "string" for choice in choices))
+        ):
+            errors.append(f"{location}.{key} must retain a string payload schema")
+
     for name in sorted(required & catalog.keys()):
         tool = catalog[name]
         schema = tool.get("inputSchema")
@@ -208,7 +240,11 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             body_fields.add("action")
         required_only(body, body_fields, f"{name}.body")
         properties = schema.get("properties", {})
+        if name == "edit_draft":
+            for key in ("markdown_body", "target", "replacement"):
+                optional_string(body, key, f"{name}.body")
         if name == "rewrite_draft":
+            optional_string(body, "section_id", f"{name}.body")
             key = field(schema, "idempotency_key", "string", name)
             if type(key.get("minLength")) is not int or key["minLength"] < 1:
                 errors.append("rewrite_draft idempotency_key must exclude empty keys")
@@ -237,9 +273,9 @@ def check_public_tool_catalog() -> None:
     tools = []
     cursor = None
     seen = set()
-    while True:
-        status, _, body = mcp_post("tools/list", {"cursor": cursor} if cursor else None)
-        payload = as_json(body)
+    for _ in range(MAX_CATALOG_PAGES):
+        status, headers, body = mcp_post("tools/list", {"cursor": cursor} if cursor else None)
+        payload = mcp_response(headers, body)
         result = payload.get("result") if isinstance(payload, dict) else None
         if status != 200 or not isinstance(result, dict) or not isinstance(result.get("tools"), list):
             fail(f"unauthenticated tools/list: {describe(status, body)}, expected a tool catalog")
@@ -252,6 +288,9 @@ def check_public_tool_catalog() -> None:
             fail("unauthenticated tools/list returned an invalid or repeated pagination cursor")
             return
         seen.add(cursor)
+    else:
+        fail(f"unauthenticated tools/list exceeded the {MAX_CATALOG_PAGES}-page catalog limit")
+        return
     errors = editorial_catalog_errors(tools)
     for message in errors:
         fail(f"public catalog: {message}")
