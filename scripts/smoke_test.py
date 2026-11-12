@@ -38,6 +38,27 @@ CIMD_PROBE = ("https://vscode.dev/oauth/client-metadata.json", "http://127.0.0.1
 # Any S256 challenge works; the flow is never completed.
 CODE_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 
+# These are contracts promised by the saved-draft workflow, not a fixed size for
+# the entire catalog. This smoke targets the canonical public server; a native
+# client's filtered inventory is checked per requested operation by the skill.
+EDITORIAL_BODY_UUIDS = {
+    "edit_draft": ("expected_base_version_id", "request_id"),
+    "restore_draft": ("expected_base_version_id", "request_id", "source_version_id"),
+    "rewrite_draft": ("expected_base_version_id",),
+    "check_draft": ("expected_base_version_id", "request_id"),
+    "request_review": ("content_version_id",),
+    "decide_review": ("content_version_id", "request_id"),
+}
+EDITORIAL_READ_IDS = {
+    "get_account": (),
+    "get_content": ("content_item_id",),
+    "get_job": ("job_id",),
+    "list_draft_sections": ("content_item_id", "content_version_id"),
+    "get_review_card": ("content_item_id",),
+    "list_reviews": (),
+    "get_review": ("review_id",),
+}
+
 failures: list[str] = []
 warnings: list[str] = []
 
@@ -122,6 +143,122 @@ def mcp_post(method: str, params: dict | None = None):
     )
 
 
+def editorial_catalog_errors(tools: list) -> list[str]:
+    """Check exposed argument/replay contracts without invoking any tool."""
+    errors = []
+    catalog = {}
+    for tool in tools:
+        name = tool.get("name") if isinstance(tool, dict) else None
+        if not isinstance(name, str) or not name or name in catalog:
+            errors.append("catalog entries must have unique nonempty names")
+            continue
+        catalog[name] = tool
+    required = set(EDITORIAL_READ_IDS) | set(EDITORIAL_BODY_UUIDS)
+    for name in sorted(required - catalog.keys()):
+        errors.append(f"missing required tool {name}")
+
+    def field(schema: dict, key: str, kind: str, location: str, *, uuid: bool = False) -> dict:
+        properties = schema.get("properties", {})
+        value = properties.get(key, {}) if isinstance(properties, dict) else {}
+        required_fields = schema.get("required", [])
+        if (
+            not isinstance(value, dict) or value.get("type") != kind
+            or not isinstance(required_fields, list) or key not in required_fields
+            or (uuid and value.get("format") != "uuid")
+        ):
+            errors.append(f"{location}.{key} must remain a required {kind}" + (" UUID" if uuid else ""))
+        return value if isinstance(value, dict) else {}
+
+    def required_only(schema: dict, allowed: set[str], location: str) -> None:
+        keys = schema.get("required", [])
+        if not isinstance(keys, list) or any(not isinstance(key, str) for key in keys):
+            errors.append(f"{location} required fields must be names")
+        elif extra := set(keys) - allowed:
+            errors.append(f"{location} adds undocumented required fields: {', '.join(sorted(extra))}")
+
+    for name in sorted(required & catalog.keys()):
+        tool = catalog[name]
+        schema = tool.get("inputSchema")
+        writing = name in EDITORIAL_BODY_UUIDS
+        if not isinstance(schema, dict) or schema.get("type") != "object":
+            errors.append(f"{name} must expose an object input schema")
+            continue
+        annotations = tool.get("annotations", {})
+        if not isinstance(annotations, dict) or annotations.get("readOnlyHint") is not (not writing):
+            errors.append(f"{name} readOnlyHint does not match its documented operation")
+        if not writing:
+            keys = EDITORIAL_READ_IDS[name]
+            for key in keys:
+                field(schema, key, "string", name, uuid=True)
+            required_only(schema, set(keys), name)
+            continue
+        root_fields = {"body"}
+        if name != "request_review":
+            item_key = "review_id" if name == "decide_review" else "content_item_id"
+            field(schema, item_key, "string", name, uuid=True)
+            root_fields.add(item_key)
+        if name == "rewrite_draft":
+            root_fields.add("idempotency_key")
+        required_only(schema, root_fields, name)
+        body = field(schema, "body", "object", name)
+        for key in EDITORIAL_BODY_UUIDS[name]:
+            field(body, key, "string", f"{name}.body", uuid=True)
+        body_fields = set(EDITORIAL_BODY_UUIDS[name])
+        if name == "decide_review":
+            body_fields.add("action")
+        required_only(body, body_fields, f"{name}.body")
+        properties = schema.get("properties", {})
+        if name == "rewrite_draft":
+            key = field(schema, "idempotency_key", "string", name)
+            if type(key.get("minLength")) is not int or key["minLength"] < 1:
+                errors.append("rewrite_draft idempotency_key must exclude empty keys")
+            body_fields = body.get("properties", {})
+            body_fields = body_fields if isinstance(body_fields, dict) else {}
+            scope = body_fields.get("scope", {})
+            scope = scope if isinstance(scope, dict) else {}
+            choices = scope.get("enum")
+            if scope.get("type") != "string" or not isinstance(choices, list) or any(not isinstance(value, str) for value in choices) or not {"section", "full"}.issubset(choices):
+                errors.append("rewrite_draft must retain section/full scope choices")
+            repair = body_fields.get("allow_broader_repair", {})
+            repair = repair if isinstance(repair, dict) else {}
+            if repair.get("type") != "boolean" or repair.get("default") is not False:
+                errors.append("rewrite_draft broader repair must remain opt-in")
+        elif not isinstance(properties, dict) or "idempotency_key" in properties or schema.get("additionalProperties") is not False:
+            errors.append(f"{name} must reject an idempotency_key argument; replay uses the documented body fields")
+        if name == "decide_review":
+            action = field(body, "action", "string", f"{name}.body")
+            choices = action.get("enum")
+            if not isinstance(choices, list) or any(not isinstance(value, str) for value in choices) or not {"approve", "reject", "request_revision"}.issubset(choices):
+                errors.append("decide_review must retain explicit human decision choices")
+    return errors
+
+
+def check_public_tool_catalog() -> None:
+    tools = []
+    cursor = None
+    seen = set()
+    while True:
+        status, _, body = mcp_post("tools/list", {"cursor": cursor} if cursor else None)
+        payload = as_json(body)
+        result = payload.get("result") if isinstance(payload, dict) else None
+        if status != 200 or not isinstance(result, dict) or not isinstance(result.get("tools"), list):
+            fail(f"unauthenticated tools/list: {describe(status, body)}, expected a tool catalog")
+            return
+        tools.extend(result["tools"])
+        cursor = result.get("nextCursor")
+        if cursor is None:
+            break
+        if not isinstance(cursor, str) or not cursor or cursor in seen:
+            fail("unauthenticated tools/list returned an invalid or repeated pagination cursor")
+            return
+        seen.add(cursor)
+    errors = editorial_catalog_errors(tools)
+    for message in errors:
+        fail(f"public catalog: {message}")
+    if not errors:
+        ok("public catalog exposes the saved-draft workflow argument and replay contracts")
+
+
 def check_unauthenticated_challenge() -> None:
     """ChatGPT lists tools before attaching a Bearer; tools/call stays gated."""
     status, _, body = mcp_post(
@@ -137,11 +274,7 @@ def check_unauthenticated_challenge() -> None:
     else:
         ok("unauthenticated initialize succeeds so hosts can discover the server")
 
-    status, _, body = mcp_post("tools/list")
-    if status != 200:
-        fail(f"unauthenticated tools/list: {describe(status, body)}, expected HTTP 200")
-    else:
-        ok("unauthenticated tools/list succeeds so hosts can enumerate tools")
+    check_public_tool_catalog()
 
     status, headers, body = mcp_post("tools/call", {"name": "get_account", "arguments": {}})
     challenge = headers.get("WWW-Authenticate", "")

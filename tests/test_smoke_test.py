@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import unittest
@@ -17,6 +18,11 @@ spec = importlib.util.spec_from_file_location("smoke_test", SCRIPT)
 sm = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(sm)
+CATALOG = ROOT / "tests" / "fixtures" / "editorial-catalog.json"
+
+
+def catalog_payload() -> dict:
+    return json.loads(CATALOG.read_text())
 
 
 class BoomOpener:
@@ -86,7 +92,7 @@ class FetchTransport(unittest.TestCase):
             if payload.get("method") == "initialize":
                 return 401, {"WWW-Authenticate": f'Bearer resource_metadata="{sm.RESOURCE_METADATA_URL}"'}, "{}"
             if payload.get("method") == "tools/list":
-                return 200, {}, "{}"
+                return 200, {}, CATALOG.read_text()
             if payload.get("method") == "tools/call":
                 return 401, {"WWW-Authenticate": f'Bearer resource_metadata="{sm.RESOURCE_METADATA_URL}"'}, "{}"
             return 0, {}, "unexpected"
@@ -101,7 +107,9 @@ class FetchTransport(unittest.TestCase):
     def test_unsigned_tools_call_must_still_challenge(self) -> None:
         def fake_fetch(url, *, data=None, headers=None):
             payload = json.loads(data.decode()) if data else {}
-            if payload.get("method") in {"initialize", "tools/list"}:
+            if payload.get("method") == "tools/list":
+                return 200, {}, CATALOG.read_text()
+            if payload.get("method") == "initialize":
                 return 200, {}, "{}"
             if payload.get("method") == "tools/call":
                 return 200, {}, "{}"
@@ -117,7 +125,9 @@ class FetchTransport(unittest.TestCase):
     def test_unsigned_discovery_and_gated_call_pass(self) -> None:
         def fake_fetch(url, *, data=None, headers=None):
             payload = json.loads(data.decode()) if data else {}
-            if payload.get("method") in {"initialize", "tools/list"}:
+            if payload.get("method") == "tools/list":
+                return 200, {}, CATALOG.read_text()
+            if payload.get("method") == "initialize":
                 return 200, {}, "{}"
             if payload.get("method") == "tools/call":
                 return (
@@ -130,6 +140,94 @@ class FetchTransport(unittest.TestCase):
         with mock.patch.object(sm, "fetch", side_effect=fake_fetch):
             sm.check_unauthenticated_challenge()
         self.assertEqual(sm.failures, [])
+
+
+class EditorialCatalogContract(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tools = catalog_payload()["result"]["tools"]
+
+    def tearDown(self) -> None:
+        sm.failures.clear()
+
+    def tool(self, name: str) -> dict:
+        return next(tool for tool in self.tools if tool["name"] == name)
+
+    def test_current_public_schema_and_additive_optional_fields_are_allowed(self) -> None:
+        self.tools.append({"name": "unrelated_future_tool"})
+        self.tool("edit_draft")["inputSchema"]["properties"]["body"]["properties"]["future_option"] = {"type": "boolean"}
+        self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
+    def test_missing_tool_names_the_unavailable_operation(self) -> None:
+        tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
+        self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))
+
+    def test_version_binding_cannot_disappear_or_become_optional(self) -> None:
+        for removal in ("properties", "required"):
+            with self.subTest(removal=removal):
+                tools = copy.deepcopy(self.tools)
+                candidate = next(tool for tool in tools if tool["name"] == "edit_draft")["inputSchema"]["properties"]["body"]
+                if removal == "properties":
+                    candidate[removal].pop("expected_base_version_id")
+                else:
+                    candidate[removal].remove("expected_base_version_id")
+                self.assertTrue(any("expected_base_version_id" in error for error in sm.editorial_catalog_errors(tools)))
+
+    def test_new_required_argument_is_a_contract_break(self) -> None:
+        body = self.tool("restore_draft")["inputSchema"]["properties"]["body"]
+        body["properties"]["new_requirement"] = {"type": "string"}
+        body["required"].append("new_requirement")
+        self.assertTrue(any("new_requirement" in error for error in sm.editorial_catalog_errors(self.tools)))
+
+    def test_replay_identifier_type_and_uuid_format_are_preserved(self) -> None:
+        request_id = self.tool("decide_review")["inputSchema"]["properties"]["body"]["properties"]["request_id"]
+        for value in ({"type": "integer"}, {"type": "string"}):
+            with self.subTest(value=value):
+                request_id.clear()
+                request_id.update(value)
+                self.assertTrue(any("request_id" in error for error in sm.editorial_catalog_errors(self.tools)))
+
+    def test_decision_choices_cannot_lose_revision_requests(self) -> None:
+        action = self.tool("decide_review")["inputSchema"]["properties"]["body"]["properties"]["action"]
+        action["enum"].remove("request_revision")
+        self.assertTrue(any("decision choices" in error for error in sm.editorial_catalog_errors(self.tools)))
+
+    def test_rewrite_key_required_and_other_write_keys_forbidden(self) -> None:
+        self.tool("rewrite_draft")["inputSchema"]["required"].remove("idempotency_key")
+        self.assertTrue(any("idempotency_key" in error for error in sm.editorial_catalog_errors(self.tools)))
+        self.tools = catalog_payload()["result"]["tools"]
+        self.tool("edit_draft")["inputSchema"]["properties"]["idempotency_key"] = {"type": "string"}
+        self.assertTrue(any("edit_draft must reject" in error for error in sm.editorial_catalog_errors(self.tools)))
+
+    def test_broader_repair_cannot_default_on_or_claim_read_only(self) -> None:
+        self.tool("rewrite_draft")["inputSchema"]["properties"]["body"]["properties"]["allow_broader_repair"]["default"] = True
+        self.tool("rewrite_draft")["annotations"]["readOnlyHint"] = True
+        errors = sm.editorial_catalog_errors(self.tools)
+        self.assertTrue(any("broader repair" in error for error in errors))
+        self.assertTrue(any("readOnlyHint" in error for error in errors))
+
+    def test_malformed_choice_schema_returns_findings_not_an_exception(self) -> None:
+        self.tool("decide_review")["inputSchema"]["properties"]["body"]["properties"]["action"]["enum"] = [{}]
+        self.assertTrue(sm.editorial_catalog_errors(self.tools))
+
+    def test_pagination_finds_required_tools_without_a_fixed_catalog_size(self) -> None:
+        first, second = self.tools[:2], self.tools[2:]
+        pages = [
+            (200, {}, json.dumps({"result": {"tools": first, "nextCursor": "next"}})),
+            (200, {}, json.dumps({"result": {"tools": second}})),
+        ]
+        with mock.patch.object(sm, "mcp_post", side_effect=pages):
+            sm.check_public_tool_catalog()
+        self.assertEqual(sm.failures, [])
+
+    def test_malformed_catalog_and_repeated_cursor_are_failures(self) -> None:
+        for response in [
+            (200, {}, "{}"),
+            (200, {}, json.dumps({"result": {"tools": [], "nextCursor": "again"}})),
+        ]:
+            with self.subTest(response=response), mock.patch.object(sm, "mcp_post", return_value=response):
+                sm.check_public_tool_catalog()
+                self.assertTrue(sm.failures)
+                sm.failures.clear()
 
 
 if __name__ == "__main__":
