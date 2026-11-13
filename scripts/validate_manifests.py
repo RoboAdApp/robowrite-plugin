@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Validate the plugin manifests shipped in this repo. Standard library only.
+"""Validate plugin manifest structure, paths, size and version consistency.
+
+Standard library only; image decoding and dimensions require platform validation.
 
 Usage:
   python3 scripts/validate_manifests.py            # structure + version consistency
@@ -191,7 +193,7 @@ def check_references(relative: str, manifest: dict) -> None:
 
 
 def check_openai_metadata(relative: str, manifest: dict) -> None:
-    """Check final public-directory fields for the shipped Codex package."""
+    """Check listing fields and asset paths/sizes, without decoding images."""
     interface = manifest.get("interface")
     if not isinstance(interface, dict):
         fail(f"{relative}: interface must be an object")

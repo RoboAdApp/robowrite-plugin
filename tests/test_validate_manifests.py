@@ -212,7 +212,7 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes((ROOT / value).read_bytes())
             asset = root / "boundary.png"
-            asset.write_bytes((ROOT / self.manifest["interface"]["composerIcon"]).read_bytes())
+            asset.write_bytes((ROOT / "assets/robowrite-r.png").read_bytes())
             for key in (*vm.OPENAI_REQUIRED_ICONS, *vm.OPENAI_OPTIONAL_ICONS):
                 with self.subTest(key=key), mock.patch.object(vm, "ROOT", root):
                     # Preserve a real PNG prefix; pad only a disposable copy.
