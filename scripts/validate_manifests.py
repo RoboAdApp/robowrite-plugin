@@ -101,7 +101,7 @@ def contains_mcp_mention(value: str) -> bool:
                 return suffix
         except (ValueError, UnicodeError):
             pass
-        return candidate
+        return match.group(0)
 
     # Square brackets are allowed only around an IP literal, not as trailing
     # Markdown delimiters; parentheses, angle brackets, double quotes and

@@ -357,6 +357,7 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
             "Read `https://example.com/@author`@robowrite",
             'Read "https://example.com/@author"@robowrite',
             "Read 'https://example.com/@author'@robowrite",
+            "Read 'https://exa%20mple.com/path'@robowrite",
             "Read https://exa%20mple.com/@robowrite",
             "Read https://example.com:invalid/@robowrite",
         ):
