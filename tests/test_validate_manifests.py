@@ -197,10 +197,33 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
     def test_starter_prompt_count_and_length_limits(self) -> None:
         self.manifest["interface"]["defaultPrompt"] = "x" * 128
         self.assertEqual(self.validate(self.manifest), [])
-        for value in ("x" * 129, ["prompt"] * 4):
+        for value in ("x" * 129, ["Read my account", "List my drafts", "Find my brief", "Read my review"]):
             with self.subTest(value=value):
                 self.manifest["interface"]["defaultPrompt"] = value
-                self.assertTrue(self.validate(self.manifest))
+                self.assertIn(".codex-plugin/plugin.json: interface.defaultPrompt allows up to three nonempty prompts of 128 characters", self.validate(self.manifest))
+
+    def test_required_and_supplied_optional_icons_respect_five_mib_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            references = {self.manifest["interface"][key] for key in vm.OPENAI_REQUIRED_ICONS}
+            references.add(self.manifest["extensions"]["com.openai"]["onboardingSkill"])
+            for value in references:
+                target = root / value
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((ROOT / value).read_bytes())
+            asset = root / "boundary.png"
+            asset.write_bytes((ROOT / self.manifest["interface"]["composerIcon"]).read_bytes())
+            for key in (*vm.OPENAI_REQUIRED_ICONS, *vm.OPENAI_OPTIONAL_ICONS):
+                with self.subTest(key=key), mock.patch.object(vm, "ROOT", root):
+                    # Preserve a real PNG prefix; pad only a disposable copy.
+                    with asset.open("r+b") as stream:
+                        stream.truncate(vm.OPENAI_ICON_MAX_BYTES)
+                    manifest = copy.deepcopy(self.manifest)
+                    manifest["interface"][key] = "./boundary.png"
+                    self.assertEqual(self.validate(manifest), [])
+                    with asset.open("r+b") as stream:
+                        stream.truncate(vm.OPENAI_ICON_MAX_BYTES + 1)
+                    self.assertEqual(self.validate(manifest), [f".codex-plugin/plugin.json: interface.{key} must not exceed 5 MiB"])
 
     def test_setup_entry_must_reference_an_included_skill(self) -> None:
         self.manifest["extensions"]["com.openai"]["onboardingSkill"] = "./README.md"
@@ -331,6 +354,9 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
             "Read [https://example.com/@author]@robowrite",
             "Read [notes](https://example.com/@author)@robowrite",
             "Read <https://example.com/@author>@robowrite",
+            "Read `https://example.com/@author`@robowrite",
+            'Read "https://example.com/@author"@robowrite',
+            "Read 'https://example.com/@author'@robowrite",
             "Read https://exa%20mple.com/@robowrite",
             "Read https://example.com:invalid/@robowrite",
         ):
@@ -342,6 +368,10 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
             "Read https://example.com/@author", "Read https://example.com/?writer=@author",
             "Read https://example.com/#@author", "Read http://[2001:db8::1]/@author",
             "Read HTTPS://example.com/@author", "Read HTTP://example.com/?writer=@author",
+            "Read `https://example.com/@author`",
+            'Read "https://example.com/@author"', "Read 'https://example.com/@author'",
+            "Read https://example.com/O'Reilly/@author",
+            "Read https://example.com/?name=O'Reilly&writer=@author",
         ):
             with self.subTest(prompt=prompt):
                 self.manifest["interface"]["defaultPrompt"] = [prompt]

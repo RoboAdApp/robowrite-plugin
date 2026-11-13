@@ -37,6 +37,7 @@ OPENAI_LISTING_URLS = (
 )
 OPENAI_REQUIRED_ICONS = ("logo", "composerIcon")
 OPENAI_OPTIONAL_ICONS = ("logoDark", "composerIconDark")
+OPENAI_ICON_MAX_BYTES = 5 * 1024 * 1024
 OPENAI_CATEGORIES = {
     "Productivity", "Creativity", "Developer Tools", "Business & Operations",
     "Data & Analytics", "Communication", "Education & Research", "Security",
@@ -82,6 +83,12 @@ def contains_mcp_mention(value: str) -> bool:
     """Ignore valid bounded HTTP(S) URL spans, but retain neighboring text."""
     def ordinary_url(match: re.Match) -> str:
         candidate = match.group(0)
+        suffix = ""
+        # Apostrophes are URI sub-delimiters. Only treat one as a closing
+        # quote when the URL has an explicit single-quote opener.
+        if match.start() and value[match.start() - 1] == "'" and "'" in candidate:
+            candidate, suffix = candidate.split("'", 1)
+            suffix = "'" + suffix
         try:
             url = urlsplit(candidate)
             port = url.port
@@ -91,14 +98,15 @@ def contains_mcp_mention(value: str) -> bool:
                 and supported_text(candidate) and "\\" not in candidate
                 and valid_url_host(url.hostname, bracketed=":" in url.hostname)
             ):
-                return ""
+                return suffix
         except (ValueError, UnicodeError):
             pass
         return candidate
 
     # Square brackets are allowed only around an IP literal, not as trailing
-    # Markdown delimiters; parentheses and angle brackets also end the span.
-    text = re.sub(r"\bhttps?://(?:\[[^\]\s<>()]+\]|[^\s<>()\[\]{}]+)[^\s<>()\[\]{}]*", ordinary_url, value, flags=re.IGNORECASE)
+    # Markdown delimiters; parentheses, angle brackets, double quotes and
+    # backticks also end the span. Unquoted apostrophes remain valid URI text.
+    text = re.sub(r'\bhttps?://(?:\[[^\]\s<>()"`]+\]|[^\s<>()\[\]{}"`]+)[^\s<>()\[\]{}"`]*', ordinary_url, value, flags=re.IGNORECASE)
     return re.search(r"(?<![\w@])@\w[\w.-]*", text) is not None
 
 # Every file that carries the release version. They must all agree.
@@ -237,6 +245,8 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
             or not (ROOT / value).is_file()
         ):
             fail(f"{relative}: interface.{key} must reference an included asset")
+        elif (ROOT / value).stat().st_size > OPENAI_ICON_MAX_BYTES:
+            fail(f"{relative}: interface.{key} must not exceed 5 MiB")
     prompts = interface.get("defaultPrompt", [])
     if isinstance(prompts, str):
         prompts = [prompts]

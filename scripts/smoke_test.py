@@ -268,6 +268,9 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             required_only(schema, set(keys), name)
             if name == "get_content":
                 optional_value(schema, "version", "integer", name, nullable=True)
+            elif name == "list_reviews":
+                for key in ("offset", "limit"):
+                    optional_value(schema, key, "integer", name)
             continue
         root_fields = {"body"}
         if name != "request_review":

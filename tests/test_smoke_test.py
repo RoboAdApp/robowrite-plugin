@@ -194,6 +194,25 @@ class EditorialCatalogContract(unittest.TestCase):
         tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
         self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))
 
+    def test_review_pagination_keeps_optional_integer_arguments(self) -> None:
+        for key in ("offset", "limit"):
+            for change in ("missing", "string", "required"):
+                with self.subTest(key=key, change=change):
+                    tools = copy.deepcopy(self.tools)
+                    schema = next(tool for tool in tools if tool["name"] == "list_reviews")["inputSchema"]
+                    if change == "missing":
+                        schema["properties"].pop(key)
+                    elif change == "string":
+                        schema["properties"][key] = {"type": "string"}
+                    else:
+                        schema["required"].append(key)
+                    errors = sm.editorial_catalog_errors(tools)
+                    self.assertTrue(any("list_reviews" in error and key in error for error in errors))
+            for compatible in ({"type": ["integer"]}, {"anyOf": [{"type": "integer"}]}, {}):
+                with self.subTest(key=key, compatible=compatible):
+                    self.tool("list_reviews")["inputSchema"]["properties"][key] = compatible
+                    self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
     def test_version_binding_cannot_disappear_or_become_optional(self) -> None:
         for removal in ("properties", "required"):
             with self.subTest(removal=removal):
