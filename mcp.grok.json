@@ -2,7 +2,7 @@
 	"mcpServers": {
 		"robowrite": {
 			"type": "http",
-			"url": "https://www.robowrite.ai/api/mcp"
+			"url": "https://mcp.robowrite.ai/mcp"
 		}
 	}
 }

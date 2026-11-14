@@ -1,10 +1,17 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
 	"name": "ai.robowrite/mcp",
-	"title": "RoboWrite",
-	"description": "Hosted RoboWrite MCP server: recover briefs and drafts, run the reviewed URL-to-Markdown workflow.",
-	"version": "0.2.3",
+	"title": "RoboWrite: AI Content Planning and Drafts",
+	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
+	"version": "0.3.0",
 	"websiteUrl": "https://www.robowrite.ai",
+	"icons": [
+		{
+			"src": "https://www.robowrite.ai/logos/robowrite-r.svg",
+			"mimeType": "image/svg+xml",
+			"sizes": ["any"]
+		}
+	],
 	"repository": {
 		"url": "https://github.com/RoboAdApp/robowrite-plugin",
 		"source": "github"
@@ -12,7 +19,7 @@
 	"remotes": [
 		{
 			"type": "streamable-http",
-			"url": "https://www.robowrite.ai/api/mcp"
+			"url": "https://mcp.robowrite.ai/mcp"
 		}
 	]
 }

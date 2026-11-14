@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
 	"author": {
 		"name": "M Powered Ventures",
 		"email": "hello@robowrite.ai"
@@ -11,7 +11,9 @@
 		"robowrite.ai",
 		"roboad"
 	],
-	"version": "0.2.3",
+	"version": "0.3.0",
 	"license": "MIT",
-	"repository": "https://github.com/RoboAdApp/robowrite-plugin"
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
+	"privacyPolicyUrl": "https://www.robowrite.ai/privacy",
+	"icon": "./assets/robowrite-r.png"
 }
