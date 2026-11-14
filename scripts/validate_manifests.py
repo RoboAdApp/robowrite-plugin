@@ -268,6 +268,7 @@ def check_openai_metadata(relative: str, manifest: dict) -> None:
         value = openai["onboardingSkill"]
         if (
             not isinstance(value, str) or not value.startswith("./skills/")
+            or ".." in Path(value).parts
             or (ROOT / value).resolve().parent.parent != (ROOT / "skills").resolve()
             or not (ROOT / value).is_file() or Path(value).name != "SKILL.md"
         ):

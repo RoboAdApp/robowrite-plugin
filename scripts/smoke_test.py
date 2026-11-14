@@ -145,9 +145,12 @@ def mcp_response(headers: dict, body: str):
                     # MCP permits an empty-data SSE event to prime reconnection.
                     data = []
                     continue
-                payload = as_json(event_data)
+                try:
+                    payload = json.loads(event_data)
+                except json.JSONDecodeError as exc:
+                    raise ValueError("SSE data contains malformed JSON") from exc
                 if not isinstance(payload, dict):
-                    return None
+                    raise ValueError("SSE data must be a JSON object")
                 response = matching_response(payload)
                 if response is not None:
                     return response
@@ -323,7 +326,11 @@ def check_public_tool_catalog() -> None:
     seen = set()
     for _ in range(MAX_CATALOG_PAGES):
         status, headers, body = mcp_post("tools/list", {"cursor": cursor} if cursor else None)
-        payload = mcp_response(headers, body)
+        try:
+            payload = mcp_response(headers, body)
+        except ValueError as exc:
+            fail(f"unauthenticated tools/list: {exc}")
+            return
         result = payload.get("result") if isinstance(payload, dict) else None
         if status != 200 or not isinstance(result, dict) or not isinstance(result.get("tools"), list):
             fail(f"unauthenticated tools/list: {describe(status, body)}, expected a tool catalog")
