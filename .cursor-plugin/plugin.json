@@ -11,7 +11,7 @@
 		"robowrite.ai",
 		"roboad"
 	],
-	"logo": "assets/robowrite-mark-light.png",
+	"logo": "assets/robowrite-r.png",
 	"version": "0.3.0",
 	"mcpServers": "./mcp.json",
 	"license": "MIT",

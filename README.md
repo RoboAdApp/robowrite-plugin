@@ -10,13 +10,15 @@ The verification receipts below are historical, from the previous endpoint; they
 
 ## What is included
 
+This repository contains the client formats below. A platform-specific submission ZIP includes only that platform's manifest and referenced components.
+
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
 - Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
-- One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
+- Shared [content workflow](skills/robowrite-content-ops/SKILL.md) and [account-first setup](skills/robowrite-setup/SKILL.md) skills.
 - The RoboWrite product mark and [MIT license](LICENSE).
 
 The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server to build or npm package to install.
@@ -117,7 +119,7 @@ Check the returned organization before authorizing content changes. Keep the cli
 
 ## Security and network
 
-This plugin contains no executable, hooks, install scripts, or environment-variable credentials.
+Loading this plugin starts no bundled executable, hook or install script and requires no environment-variable credentials.
 
 | Endpoint | Why |
 | --- | --- |
@@ -125,7 +127,7 @@ This plugin contains no executable, hooks, install scripts, or environment-varia
 | `https://mcp.robowrite.ai/.well-known/oauth-protected-resource/mcp` | Protected-resource metadata for OAuth discovery. |
 | Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
 
-Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
+Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication scope is not requested. The hosted catalog includes content editing/review plus destructive category and tag deletion tools. Deletion requires an explicit decision for the exact ID and selected brand; it is outside the default drafting workflow. No billing-management tool is advertised.
 
 Unauthenticated `initialize`, `ping`, and `tools/list` succeed so hosted clients can discover the connector. `tools/call` still returns 401 with an OAuth challenge until the user signs in.
 
@@ -133,7 +135,7 @@ Unauthenticated `initialize`, `ping`, and `tools/list` succeed so hosted clients
 
 The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
 
-Publication access is not requested. This connector has no delete tools or billing-management tools. It also has no draft-edit tool, so locally revised text must not be described as a saved RoboWrite revision. The account's allowance and overage settings still apply; OAuth does not set a separate spending limit.
+Publication access is not requested. The hosted catalog includes `edit_draft`, `restore_draft`, `rewrite_draft`, persisted editorial review tools, and destructive `delete_category`/`delete_tag` operations. Consult each connected schema and obtain approval before the intended change. Read the stored version after a save; local edits alone are not saved RoboWrite revisions. AI generation and rewriting can consume allowance; the account's overage settings still apply and OAuth does not set a separate spending limit.
 
 ## Find and resume work
 
@@ -163,9 +165,9 @@ After reviewing the plan, request the draft workflow:
 
 ## Releasing
 
-CI validates every manifest on each pull request: JSON structure, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
+CI validates every manifest on each pull request: JSON structure, OpenAI listing metadata (supported categories, single-line fields, normalized unique starter prompts) and included icon references, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
 
-CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, that unsigned `initialize` and `tools/list` succeed, that `tools/call` still returns 401 with an OAuth challenge, and that the static client and redirect URI in each manifest that ships one (`.mcp.json`, `mcp.json`, `gemini-extension.json`) reach the sign-in page. The URL-only Grok and Codex manifests have no client to check. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning if a known-good document is not accepted; `--strict` turns warnings into failures.
+CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, that unsigned `initialize` and `tools/list` succeed, that `tools/call` still returns 401 with an OAuth challenge, and that the static client and redirect URI in each manifest that ships one (`.mcp.json`, `mcp.json`, `gemini-extension.json`) reach the sign-in page. The public catalog check accepts JSON or SSE responses, follows at most 100 pages, and validates the required saved-draft tool names, edit payloads, section selection, version/replay fields, decision choices and rewrite idempotency without invoking those tools. It permits additional tools and optional fields rather than fixing a catalog count. The URL-only Grok and Codex manifests have no client to check. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning if a known-good document is not accepted; `--strict` turns warnings into failures.
 
 To release, bump the version in all six files and merge to `main`. Nothing else is needed:
 

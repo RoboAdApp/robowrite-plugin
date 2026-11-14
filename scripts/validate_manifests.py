@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Validate the plugin manifests shipped in this repo. Standard library only.
+"""Validate plugin manifest structure, paths, size and version consistency.
+
+Standard library only; image decoding and dimensions require platform validation.
 
 Usage:
   python3 scripts/validate_manifests.py            # structure + version consistency
@@ -9,11 +11,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -22,6 +27,89 @@ MCP_URL = "https://mcp.robowrite.ai/mcp"
 MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 REGISTRY_NAME = "ai.robowrite/mcp"
 REGISTRY_DESCRIPTION_MAX = 100
+OPENAI_TEXT_LIMITS = {
+    "displayName": 30,
+    "shortDescription": 30,
+    "longDescription": 4000,
+    "developerName": 80,
+    "category": None,
+}
+OPENAI_LISTING_URLS = (
+    "websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"
+)
+OPENAI_REQUIRED_ICONS = ("logo", "composerIcon")
+OPENAI_OPTIONAL_ICONS = ("logoDark", "composerIconDark")
+OPENAI_ICON_MAX_BYTES = 5 * 1024 * 1024
+OPENAI_CATEGORIES = {
+    "Productivity", "Creativity", "Developer Tools", "Business & Operations",
+    "Data & Analytics", "Communication", "Education & Research", "Security",
+    "Finance", "Healthcare", "Travel", "Entertainment", "Other",
+}
+
+
+def single_line(value: str) -> bool:
+    return not any(char in value for char in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
+
+
+def supported_text(value: str, *, multiline: bool = False) -> bool:
+    """Reject documented controls without excluding language/emoji joiners."""
+    return all(
+        (multiline and char in "\r\n")
+        or unicodedata.category(char) not in {"Cc", "Cs", "Zl", "Zp"}
+        for char in value
+    )
+
+
+def has_text_content(value: str) -> bool:
+    """Keep joiners in text, but do not count formatting alone as content."""
+    return any(not char.isspace() and unicodedata.category(char) != "Cf" for char in value)
+
+
+def valid_url_host(host: str, *, bracketed: bool = False) -> bool:
+    """Check host syntax only; preserve IDNA, escaped reg-names and IPs."""
+    try:
+        decoded = unquote(host, errors="strict")
+        if not decoded or not supported_text(decoded) or any(char.isspace() for char in decoded):
+            return False
+        if bracketed:
+            ipaddress.IPv6Address(decoded)
+            return True
+        ascii_host = decoded.encode("idna").decode("ascii")
+        # RFC3986 reg-name characters after percent-decoding and IDNA.
+        return re.fullmatch(r"[A-Za-z0-9._~!$&'()*+,;=-]+", ascii_host) is not None
+    except (ValueError, UnicodeError):
+        return False
+
+
+def contains_mcp_mention(value: str) -> bool:
+    """Ignore valid bounded HTTP(S) URL spans, but retain neighboring text."""
+    def ordinary_url(match: re.Match) -> str:
+        candidate = match.group(0)
+        suffix = ""
+        # Apostrophes are URI sub-delimiters. Only treat one as a closing
+        # quote when the URL has an explicit single-quote opener.
+        if match.start() and value[match.start() - 1] == "'" and "'" in candidate:
+            candidate, suffix = candidate.split("'", 1)
+            suffix = "'" + suffix
+        try:
+            url = urlsplit(candidate)
+            port = url.port
+            if (
+                url.scheme in {"http", "https"} and url.hostname
+                and (port is None or 0 <= port <= 65535)
+                and supported_text(candidate) and "\\" not in candidate
+                and valid_url_host(url.hostname, bracketed=":" in url.hostname)
+            ):
+                return suffix
+        except (ValueError, UnicodeError):
+            pass
+        return match.group(0)
+
+    # Square brackets are allowed only around an IP literal, not as trailing
+    # Markdown delimiters; parentheses, angle brackets, double quotes and
+    # backticks also end the span. Unquoted apostrophes remain valid URI text.
+    text = re.sub(r'\bhttps?://(?:\[[^\]\s<>()"`]+\]|[^\s<>()\[\]{}"`]+)[^\s<>()\[\]{}"`]*', ordinary_url, value, flags=re.IGNORECASE)
+    return re.search(r"(?<![\w@])@\w[\w.-]*", text) is not None
 
 # Every file that carries the release version. They must all agree.
 VERSIONED = [
@@ -94,11 +182,96 @@ def check_references(relative: str, manifest: dict) -> None:
     references = [(key, manifest.get(key)) for key in ("mcpServers", "logo", "skills")]
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        references.append(("interface.logo", interface.get("logo")))
+        references.extend(
+            (f"interface.{key}", interface.get(key))
+            for key in (*OPENAI_REQUIRED_ICONS, "logoDark", "composerIconDark")
+        )
     for key, value in references:
         if isinstance(value, str) and not value.startswith(("http://", "https://")):
             if not (ROOT / value).exists():
                 fail(f"{relative}: `{key}` points at missing path {value}")
+
+
+def check_openai_metadata(relative: str, manifest: dict) -> None:
+    """Check listing fields and asset paths/sizes, without decoding images."""
+    interface = manifest.get("interface")
+    if not isinstance(interface, dict):
+        fail(f"{relative}: interface must be an object")
+        return
+    for key, limit in OPENAI_TEXT_LIMITS.items():
+        value = interface.get(key)
+        if not isinstance(value, str) or not has_text_content(value):
+            fail(f"{relative}: interface.{key} is required")
+        elif limit is not None and len(value) > limit:
+            fail(f"{relative}: interface.{key} exceeds {limit} characters")
+        elif key != "longDescription" and not single_line(value):
+            fail(f"{relative}: interface.{key} must fit on one line")
+        elif not supported_text(value, multiline=key == "longDescription"):
+            fail(f"{relative}: interface.{key} contains unsupported control characters")
+    if isinstance(interface.get("category"), str) and interface["category"] not in OPENAI_CATEGORIES:
+        fail(f"{relative}: interface.category must be a supported directory category")
+    for key in OPENAI_LISTING_URLS:
+        value = interface.get(key)
+        try:
+            url = urlsplit(value) if isinstance(value, str) else None
+            port = url.port if url else None
+            valid = bool(
+                url and url.scheme == "https" and url.hostname
+                and supported_text(value) and not any(char.isspace() for char in value)
+                and "\\" not in value
+                and valid_url_host(url.hostname, bracketed=url.netloc.startswith("["))
+                and (port is None or 0 <= port <= 65535)
+                and url.username is None and url.password is None
+                and len(value) <= 1024
+            )
+        except ValueError:
+            valid = False
+        if not valid:
+            fail(f"{relative}: interface.{key} must be a public HTTPS URL")
+    capabilities = interface.get("capabilities")
+    if (
+        not isinstance(capabilities, list) or len(capabilities) > 20
+        or any(not isinstance(value, str) or not has_text_content(value) or len(value) > 120 or not single_line(value) or not supported_text(value)
+               for value in capabilities)
+    ):
+        fail(f"{relative}: interface.capabilities must contain at most 20 nonempty labels of 120 characters")
+    for key in (*OPENAI_REQUIRED_ICONS, *OPENAI_OPTIONAL_ICONS):
+        if key in OPENAI_OPTIONAL_ICONS and key not in interface:
+            continue
+        value = interface.get(key)
+        if (
+            not isinstance(value, str) or not value.startswith("./")
+            or ".." in Path(value).parts
+            or Path(value).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp", ".svg"}
+            or not (ROOT / value).resolve().is_relative_to(ROOT.resolve())
+            or not (ROOT / value).is_file()
+        ):
+            fail(f"{relative}: interface.{key} must reference an included asset")
+        elif (ROOT / value).stat().st_size > OPENAI_ICON_MAX_BYTES:
+            fail(f"{relative}: interface.{key} must not exceed 5 MiB")
+    prompts = interface.get("defaultPrompt", [])
+    if isinstance(prompts, str):
+        prompts = [prompts]
+    if (
+        not isinstance(prompts, list) or len(prompts) > 3
+        or any(not isinstance(value, str) or not has_text_content(value) or len(value) > 128 or not single_line(value) or not supported_text(value)
+               for value in prompts)
+    ):
+        fail(f"{relative}: interface.defaultPrompt allows up to three nonempty prompts of 128 characters")
+    elif len({" ".join(unicodedata.normalize("NFKC", value).split()) for value in prompts}) != len(prompts):
+        fail(f"{relative}: interface.defaultPrompt must be unique after Unicode and whitespace normalization")
+    elif any(contains_mcp_mention(value) for value in prompts):
+        fail(f"{relative}: interface.defaultPrompt must not contain MCP server @mentions")
+    extensions = manifest.get("extensions", {})
+    openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else {}
+    if isinstance(openai, dict) and "onboardingSkill" in openai:
+        value = openai["onboardingSkill"]
+        if (
+            not isinstance(value, str) or not value.startswith("./skills/")
+            or (ROOT / value).resolve().parent.parent != (ROOT / "skills").resolve()
+            or not (ROOT / value).is_file() or Path(value).name != "SKILL.md"
+        ):
+            fail(f"{relative}: onboardingSkill must reference an included skill")
 
 
 def check_skills() -> None:
@@ -142,6 +315,8 @@ def main() -> int:
                 versions[relative] = version
         if relative.endswith("plugin.json"):
             check_references(relative, manifest)
+        if relative == ".codex-plugin/plugin.json":
+            check_openai_metadata(relative, manifest)
 
     if len(set(versions.values())) > 1:
         detail = ", ".join(f"{path}={version}" for path, version in versions.items())

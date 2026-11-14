@@ -10,6 +10,6 @@
 	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
 	"license": "MIT",
 	"keywords": ["robowrite", "robowrite.ai", "roboad"],
-	"logo": "assets/robowrite-mark-light.png",
+	"logo": "assets/robowrite-r.png",
 	"mcpServers": "./mcp.grok.json"
 }

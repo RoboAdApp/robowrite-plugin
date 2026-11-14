@@ -1,0 +1,613 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "list_reviews",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Item Id"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "get_review",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "review_id": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "review_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "request_review",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "content_version_id": {
+                  "format": "uuid",
+                  "title": "Content Version Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "content_version_id"
+              ],
+              "title": "ReviewCreateRequest",
+              "type": "object"
+            }
+          },
+          "required": [
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "decide_review",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "review_id": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            },
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "enum": [
+                    "approve",
+                    "reject",
+                    "request_revision"
+                  ],
+                  "title": "ReviewAction",
+                  "type": "string"
+                },
+                "content_version_id": {
+                  "format": "uuid",
+                  "title": "Content Version Id",
+                  "type": "string"
+                },
+                "feedback": {
+                  "anyOf": [
+                    {
+                      "maxLength": 10000,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Feedback"
+                },
+                "request_id": {
+                  "format": "uuid",
+                  "title": "Request Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "content_version_id",
+                "request_id",
+                "action"
+              ],
+              "title": "ReviewDecisionRequest",
+              "type": "object"
+            }
+          },
+          "required": [
+            "review_id",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "get_account",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "get_content",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "include": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated optional projections. Pass 'scoring' to include per-version quality signals (geo/draft scores, warnings); pass 'sources' to include the research sources cited in each version (marker, source_name, source_url, origin); pass 'assertion_provenance' to include the per-assertion provenance receipt (sentence, sentence_index, url, marker, origin); pass 'compliance' to include each version's regulated-content policy findings (kind, message, excerpt); pass 'supplied_facts' to include the facts you supplied with no source URL (claim_id, text, attribution). Any may be combined.",
+              "title": "Include"
+            },
+            "latest_only": {
+              "default": false,
+              "description": "Return only the current version instead of paging the revision history. Use this for page-by-page download.",
+              "title": "Latest Only",
+              "type": "boolean"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only this version number. Mutually exclusive with `latest_only`; an unknown version number is a 404.",
+              "title": "Version"
+            },
+            "limit": {
+              "default": 50,
+              "description": "Versions page size. Ignored when latest_only or version is set. Newest version first. Standard public pagination bounds (1\u2013200, default 50).",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "description": "Versions page offset. Ignored when latest_only or version is set.",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "content_item_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "get_job",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "edit_draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "expected_base_version_id": {
+                  "format": "uuid",
+                  "title": "Expected Base Version Id",
+                  "type": "string"
+                },
+                "markdown_body": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Markdown Body"
+                },
+                "replacement": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Replacement"
+                },
+                "request_id": {
+                  "format": "uuid",
+                  "title": "Request Id",
+                  "type": "string"
+                },
+                "target": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Target"
+                }
+              },
+              "required": [
+                "expected_base_version_id",
+                "request_id"
+              ],
+              "title": "EditorialEditRequest",
+              "type": "object"
+            }
+          },
+          "required": [
+            "content_item_id",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "restore_draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "expected_base_version_id": {
+                  "format": "uuid",
+                  "title": "Expected Base Version Id",
+                  "type": "string"
+                },
+                "request_id": {
+                  "format": "uuid",
+                  "title": "Request Id",
+                  "type": "string"
+                },
+                "source_version_id": {
+                  "format": "uuid",
+                  "title": "Source Version Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "expected_base_version_id",
+                "request_id",
+                "source_version_id"
+              ],
+              "title": "EditorialRestoreRequest",
+              "type": "object"
+            }
+          },
+          "required": [
+            "content_item_id",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "list_draft_sections",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "content_version_id": {
+              "format": "uuid",
+              "title": "Content Version Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content_item_id",
+            "content_version_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "rewrite_draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "allow_broader_repair": {
+                  "default": false,
+                  "title": "Allow Broader Repair",
+                  "type": "boolean"
+                },
+                "expected_base_version_id": {
+                  "format": "uuid",
+                  "title": "Expected Base Version Id",
+                  "type": "string"
+                },
+                "instructions": {
+                  "anyOf": [
+                    {
+                      "maxLength": 5000,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Instructions"
+                },
+                "scope": {
+                  "enum": [
+                    "section",
+                    "full"
+                  ],
+                  "title": "EditorialRewriteScope",
+                  "type": "string",
+                  "default": "full"
+                },
+                "section_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Section Id"
+                },
+                "target_length": {
+                  "anyOf": [
+                    {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Target Length"
+                },
+                "tone": {
+                  "anyOf": [
+                    {
+                      "maxLength": 128,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Tone"
+                }
+              },
+              "required": [
+                "expected_base_version_id"
+              ],
+              "title": "EditorialRewriteRequest",
+              "type": "object"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$",
+              "description": "Stable operation key. Reuse for the same request after a dropped response; use a new key for a new intended operation."
+            }
+          },
+          "required": [
+            "content_item_id",
+            "body",
+            "idempotency_key"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "check_draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "expected_base_version_id": {
+                  "format": "uuid",
+                  "title": "Expected Base Version Id",
+                  "type": "string"
+                },
+                "request_id": {
+                  "format": "uuid",
+                  "title": "Request Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "expected_base_version_id",
+                "request_id"
+              ],
+              "title": "EditorialCheckRequest",
+              "type": "object"
+            }
+          },
+          "required": [
+            "content_item_id",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "get_review_card",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content_item_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        }
+      }
+    ]
+  }
+}
