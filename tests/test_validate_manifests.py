@@ -236,7 +236,7 @@ class OpenAIDirectoryMetadata(unittest.TestCase):
                 asset = root / value
                 asset.parent.mkdir(parents=True, exist_ok=True)
                 asset.write_bytes((ROOT / value).read_bytes())
-            for relative, accepted in (("./skills/setup/SKILL.md", True), ("./skills/group/setup/SKILL.md", False)):
+            for relative, accepted in (("./skills/setup/SKILL.md", True), ("./skills/group/setup/SKILL.md", False), ("./skills/setup/../setup/SKILL.md", False)):
                 with self.subTest(relative=relative):
                     skill = root / relative
                     skill.parent.mkdir(parents=True, exist_ok=True)

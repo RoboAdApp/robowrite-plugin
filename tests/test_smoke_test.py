@@ -361,8 +361,8 @@ class EditorialCatalogContract(unittest.TestCase):
             sm.check_public_tool_catalog()
         self.assertEqual(sm.failures, [])
 
-    def test_sse_malformed_or_unmatched_response_is_a_catalog_failure(self) -> None:
-        for body in ('data: invalid\n\n', 'data: {"id":2,"result":{"tools":[]}}\n\n', ': keepalive\n\n'):
+    def test_sse_unmatched_response_is_a_catalog_failure(self) -> None:
+        for body in ('data: {"id":2,"result":{"tools":[]}}\n\n', ': keepalive\n\n'):
             with self.subTest(body=body), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, body)):
                 sm.check_public_tool_catalog()
                 self.assertTrue(any("expected a tool catalog" in message for message in sm.failures))
@@ -370,16 +370,17 @@ class EditorialCatalogContract(unittest.TestCase):
 
     def test_sse_allows_empty_reconnection_priming_but_rejects_malformed_data(self) -> None:
         response = "data: " + json.dumps(rpc_result({"tools": self.tools})) + "\n\n"
-        for prefix, accepted in (
-            ("id: reconnect\ndata:\n\n", True),
-            ("id: reconnect\ndata: \n\n", True),
-            ("data: invalid\n\n", False),
-            ("data: []\n\n", False),
-            ("data: null\n\n", False),
+        for prefix, error in (
+            ("id: reconnect\ndata:\n\n", None),
+            ("id: reconnect\ndata: \n\n", None),
+            ("data: invalid\n\n", "SSE data contains malformed JSON"),
+            ("data: []\n\n", "SSE data must be a JSON object"),
+            ("data: null\n\n", "SSE data must be a JSON object"),
         ):
             with self.subTest(prefix=prefix), mock.patch.object(sm, "mcp_post", return_value=(200, {"Content-Type": "text/event-stream"}, prefix + response)):
                 sm.check_public_tool_catalog()
-                self.assertEqual(not sm.failures, accepted)
+                expected = [f"unauthenticated tools/list: {error}"] if error else []
+                self.assertEqual(sm.failures, expected)
                 sm.failures.clear()
 
     def test_sse_requires_a_real_blank_line_delimiter_before_dispatch(self) -> None:
