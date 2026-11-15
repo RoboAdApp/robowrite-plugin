@@ -271,6 +271,8 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         annotations = tool.get("annotations", {})
         if not isinstance(annotations, dict) or annotations.get("readOnlyHint") is not (not writing):
             errors.append(f"{name} readOnlyHint does not match its documented operation")
+        if name not in WORKSPACE_READ_IDS:
+            optional_value(schema, "organization_id", "string", name)
         if not writing:
             keys = read_ids[name]
             for key in keys:

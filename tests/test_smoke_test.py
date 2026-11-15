@@ -216,17 +216,24 @@ class EditorialCatalogContract(unittest.TestCase):
                         self.tool(name)["inputSchema"]["properties"][key] = compatible
                         self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
 
-    def test_workspace_targets_remain_required_string_arguments(self) -> None:
-        """Reject catalogs that make the documented explicit-target calls invalid."""
-        for name in ("get_organization_access", "switch_organization"):
-            for change in ("missing", "optional", "integer", "extra_required"):
+    def test_workspace_targets_keep_documented_type_and_requiredness(self) -> None:
+        """Keep broad targets valid without requiring them on pinned calls."""
+        for tool in self.tools:
+            name = tool["name"]
+            if name == "list_organizations":
+                continue
+            required_target = name in ("get_organization_access", "switch_organization")
+            for change in ("missing", "requiredness", "integer", "extra_required"):
                 with self.subTest(tool=name, change=change):
                     tools = copy.deepcopy(self.tools)
                     schema = next(tool for tool in tools if tool["name"] == name)["inputSchema"]
                     if change == "missing":
                         schema["properties"].pop("organization_id")
-                    elif change == "optional":
-                        schema["required"].remove("organization_id")
+                    elif change == "requiredness":
+                        if required_target:
+                            schema["required"].remove("organization_id")
+                        else:
+                            schema["required"].append("organization_id")
                     elif change == "integer":
                         schema["properties"]["organization_id"] = {"type": "integer"}
                     else:
