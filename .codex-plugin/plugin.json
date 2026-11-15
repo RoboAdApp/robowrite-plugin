@@ -100,7 +100,7 @@
 				}
 			},
 			"publication": {
-				"release_notes": "RoboWrite 0.3.0 uses the canonical hosted MCP endpoint, explicitly consented workspace selection with account verification, and saved-draft editing and editorial recovery guidance. Existing pinned grants retain their authority. Reconnect after endpoint migration or for missing consent."
+				"release_notes": "Release requires the documented native consent, workspace selection/cancel/return, update/reconnect and parallel-client acceptance gates to pass. This 0.3.0 candidate prepares canonical MCP access, explicit workspace context and saved-draft recovery. Existing valid pinned grants retain authority; endpoint migration or missing-consent reconnect may request combined discovery/content consent. Publication remains separate."
 			}
 		}
 	}

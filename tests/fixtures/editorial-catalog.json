@@ -607,6 +607,84 @@
           "openWorldHint": true,
           "idempotentHint": true
         }
+      },
+      {
+        "name": "list_organizations",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "List available workspaces"
+        }
+      },
+      {
+        "name": "get_organization_access",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "organization_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "Check your workspace access"
+        }
+      },
+      {
+        "name": "switch_organization",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "organization_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "Switch the intended workspace"
+        }
       }
     ]
   }

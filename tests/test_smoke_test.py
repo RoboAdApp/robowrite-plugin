@@ -191,8 +191,10 @@ class EditorialCatalogContract(unittest.TestCase):
                 self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
 
     def test_missing_tool_names_the_unavailable_operation(self) -> None:
-        tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
-        self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))
+        for name in ("edit_draft", "list_organizations", "get_organization_access", "switch_organization"):
+            with self.subTest(missing=name):
+                tools = [tool for tool in self.tools if tool["name"] != name]
+                self.assertIn(f"missing required tool {name}", sm.editorial_catalog_errors(tools))
 
     def test_review_pagination_keeps_optional_integer_arguments(self) -> None:
         for key in ("offset", "limit"):

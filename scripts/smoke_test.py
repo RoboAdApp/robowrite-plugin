@@ -61,6 +61,10 @@ EDITORIAL_READ_IDS = {
     "list_reviews": (),
     "get_review": ("review_id",),
 }
+# New packaged connections require these live read-only operations before use.
+WORKSPACE_TOOL_NAMES = frozenset({
+    "list_organizations", "get_organization_access", "switch_organization"
+})
 SCHEMA_TYPES = frozenset(("null", "boolean", "object", "array", "number", "integer", "string"))
 
 failures: list[str] = []
@@ -198,7 +202,7 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             errors.append("catalog entries must have unique nonempty names")
             continue
         catalog[name] = tool
-    required = set(EDITORIAL_READ_IDS) | set(EDITORIAL_BODY_UUIDS)
+    required = set(EDITORIAL_READ_IDS) | set(EDITORIAL_BODY_UUIDS) | WORKSPACE_TOOL_NAMES
     for name in sorted(required - catalog.keys()):
         errors.append(f"missing required tool {name}")
 
@@ -264,6 +268,8 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         annotations = tool.get("annotations", {})
         if not isinstance(annotations, dict) or annotations.get("readOnlyHint") is not (not writing):
             errors.append(f"{name} readOnlyHint does not match its documented operation")
+        if name in WORKSPACE_TOOL_NAMES:
+            continue
         if not writing:
             keys = EDITORIAL_READ_IDS[name]
             for key in keys:
@@ -350,7 +356,7 @@ def check_public_tool_catalog() -> None:
     for message in errors:
         fail(f"public catalog: {message}")
     if not errors:
-        ok("public catalog exposes the saved-draft workflow argument and replay contracts")
+        ok("public catalog exposes workspace selection and saved-draft workflow argument/replay contracts")
 
 
 def check_unauthenticated_challenge() -> None:
