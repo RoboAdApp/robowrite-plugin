@@ -4,7 +4,7 @@ Connect your AI assistant to RoboWrite for brand-aware content planning, reviewe
 
 Read the [RoboWrite MCP installation and usage manual](https://www.robowrite.ai/guides/robowrite-mcp) for the server URL, browser OAuth, client setup, first-task examples, and troubleshooting.
 
-Version 0.3.0 migrates all clients to `https://mcp.robowrite.ai/mcp` with exact resource-audience OAuth validation. Reconnect after updating; tokens for the old URL or without an audience are rejected. The deployment and new-endpoint sign-in/account acceptance must pass, and the public setup manual must be deployed, before this version is merged or released. Merging a new version automatically publishes it to the MCP Registry.
+Version 0.3.0 migrates all clients to `https://mcp.robowrite.ai/mcp` with exact resource-audience OAuth validation. Reconnect after updating; tokens for the old URL or without an audience are rejected. This held candidate also adds separately consented multi-workspace access. The reviewed API/host deployment, provider consent, and native ChatGPT/Claude/Cursor selection, cancellation, return, update and reconnect acceptance must pass, and the public setup manual must be deployed, before this version is merged or released. Merging a new version automatically publishes it to the MCP Registry.
 
 The verification receipts below are historical, from the previous endpoint; they do not establish acceptance at the new URL. Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
@@ -111,11 +111,15 @@ For Windsurf, add this to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
-Use this first prompt:
+For an existing pinned connection, use this first prompt:
 
 > Use RoboWrite to check the connected account and organization. Make only the read-only get_account call. Do not create or change anything.
 
-Check the returned organization before authorizing content changes. Keep the client's normal tool approval controls enabled. Credentials belong in browser sign-in, never in chat or these files. Reconnect to change organizations or recover from an expired or revoked grant.
+For a new multi-workspace connection after the reviewed capability is enabled:
+
+> Use RoboWrite to list the workspaces I can access and show my role and verified eligibility. Wait for me to choose before selecting a workspace. Do not create or change anything.
+
+Check the returned organization before authorizing content changes. Keep the client's normal tool approval controls enabled. Credentials belong in browser sign-in, never in chat or these files. Existing pinned grants remain pinned. To switch in chat, deliberately grant the new multi-workspace consent and follow the workspace flow below. Reconnect for expired/revoked tokens or missing consent; a role or security-policy refusal needs access recovery, not repeated reconnects.
 
 ## Security and network
 
@@ -127,7 +131,7 @@ Loading this plugin starts no bundled executable, hook or install script and req
 | `https://mcp.robowrite.ai/.well-known/oauth-protected-resource/mcp` | Protected-resource metadata for OAuth discovery. |
 | Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
 
-Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication scope is not requested. The hosted catalog includes content editing/review plus destructive category and tag deletion tools. Deletion requires an explicit decision for the exact ID and selected brand; it is outside the default drafting workflow. No billing-management tool is advertised.
+Scopes requested by new Claude, Cursor, and Gemini connections: `robowrite:organizations:read`, `robowrite:content:all_orgs`, `offline_access`. The first consent discloses discovery and content across all current and future eligible memberships together. Existing grants keep their original pinned authority; updates cannot silently broaden them. Publication scope is not requested. The hosted catalog includes content editing/review plus destructive category and tag deletion tools. Deletion requires an explicit decision for the exact ID and selected brand; it is outside the default drafting workflow. No billing-management tool is advertised.
 
 Unauthenticated `initialize`, `ping`, and `tools/list` succeed so hosted clients can discover the connector. `tools/call` still returns 401 with an OAuth challenge until the user signs in.
 
@@ -136,6 +140,14 @@ Unauthenticated `initialize`, `ping`, and `tools/list` succeed so hosted clients
 The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
 
 Publication access is not requested. The hosted catalog includes `edit_draft`, `restore_draft`, `rewrite_draft`, persisted editorial review tools, and destructive `delete_category`/`delete_tag` operations. Consult each connected schema and obtain approval before the intended change. Read the stored version after a save; local edits alone are not saved RoboWrite revisions. AI generation and rewriting can consume allowance; the account's overage settings still apply and OAuth does not set a separate spending limit.
+
+## Select or switch a workspace
+
+First inspect the connected catalog. If workspace tools are unavailable, keep the pinned connection and its account check; this package does not activate hosted tools. For new multi-workspace access, complete the host's clearly disclosed discovery-plus-content consent. Publication permission remains separate.
+
+Use `list_organizations` through every page, inspect `get_organization_access`, and confirm the user's intended workspace and current role/eligibility. Call `switch_organization`, then `get_account` with the same `organization_id`. Show the verified target and recover its brands, content, briefs and jobs. Include that top-level `organization_id` on every subsequent content call and poll. Switching is read-only and changes no browser/global selection, content or billing. It does not authorize publication or additional spend.
+
+Discard prior workspace object choices after a switch. Never reuse their IDs or retry a write in a different workspace. Canceling preserves prior intent without action. Membership, role, deletion and unproven enterprise/SSO eligibility stop work safely. After updating or reconnecting, refresh the client catalog, record its connector version/build/catalog hash, and check the target account again. A valid manifest or SDK result alone does not prove native installation or switching.
 
 ## Find and resume work
 
