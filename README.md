@@ -143,9 +143,11 @@ Publication access is not requested. The hosted catalog includes `edit_draft`, `
 
 ## Select or switch a workspace
 
-First inspect the connected catalog. If workspace tools are unavailable, keep the pinned connection and its account check; this package does not activate hosted tools. For new multi-workspace access, complete the host's clearly disclosed discovery-plus-content consent. Publication permission remains separate.
+First inspect the connected catalog, which describes capability rather than the current grant's authority. Only an already-valid pinned grant may keep its omitted-target account check when workspace tools are unavailable. New static Claude, Cursor and Gemini connections request combined discovery-plus-content consent by default; stop if that capability is unavailable rather than reconnecting into the same broader consent again. This package does not activate hosted tools. Publication permission remains separate.
 
 Use `list_organizations` through every page, inspect `get_organization_access`, and confirm the user's intended workspace and current role/eligibility. Call `switch_organization`, then `get_account` with the same `organization_id`. Show the verified target and recover its brands, content, briefs and jobs. Include that top-level `organization_id` on every subsequent content call and poll. Switching is read-only and changes no browser/global selection, content or billing. It does not authorize publication or additional spend.
+
+If an account call returns 409 with “Explicit workspace selection is required for this grant,” run that listing/access flow and wait for the user's target before checking its account and recovering resources. Do not reconnect or retry the original action without a target. Every fresh chat or client must establish its own explicit intended target and verify its account; never import another chat's selections.
 
 Discard prior workspace object choices after a switch. Never reuse their IDs or retry a write in a different workspace. Canceling preserves prior intent without action. Membership, role, deletion and unproven enterprise/SSO eligibility stop work safely. After updating or reconnecting, refresh the client catalog, record its connector version/build/catalog hash, and check the target account again. A valid manifest or SDK result alone does not prove native installation or switching.
 

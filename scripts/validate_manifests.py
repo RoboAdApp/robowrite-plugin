@@ -30,8 +30,9 @@ MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 CONNECTION_SCOPES = frozenset({
     "robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"
 })
+STRING_SCOPE_MANIFEST = ".mcp.json"
 STATIC_SCOPE_PATHS = {
-    ".mcp.json": ("mcpServers", "robowrite", "oauth", "scopes"),
+    STRING_SCOPE_MANIFEST: ("mcpServers", "robowrite", "oauth", "scopes"),
     "mcp.json": ("mcpServers", "robowrite", "auth", "scopes"),
     "gemini-extension.json": ("mcpServers", "robowrite", "oauth", "scopes"),
 }
@@ -196,6 +197,10 @@ def check_connection_scopes(relative: str, manifest: dict) -> None:
     value = manifest
     for key in path:
         value = value.get(key) if isinstance(value, dict) else None
+    expected_type = str if relative == STRING_SCOPE_MANIFEST else list
+    if not isinstance(value, expected_type):
+        fail(f"{relative}: scopes must use the client's {expected_type.__name__} format")
+        return
     scopes = value.split() if isinstance(value, str) else value
     if (
         not isinstance(scopes, list)
