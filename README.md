@@ -1,6 +1,8 @@
 # RoboWrite
 
-Connect your AI assistant to RoboWrite for brand-aware content planning, reviewed briefs, and saved Markdown drafts. Recover existing work and use your brand voice and content strategy when preparing new content.
+Connect your AI assistant to RoboWrite for SEO and GEO (generative engine optimization) content informed by keyword research, competitor insights, brand voice, and relevant knowledge. Plan topic clusters, prepare briefs, review Content Kits, and generate or improve blog articles.
+
+Bring target keywords, competitor pages, source URLs, and knowledge-library documents into your briefs. The writing pipeline uses internal retrieval-augmented generation (RAG) to retrieve relevant document context when library retrieval is enabled for the workflow or documents are attached. Review the outline and facts before writing, then read, edit, or recover saved Markdown drafts.
 
 Read the [RoboWrite MCP installation and usage manual](https://www.robowrite.ai/guides/robowrite-mcp) for the server URL, browser OAuth, client setup, first-task examples, and troubleshooting.
 

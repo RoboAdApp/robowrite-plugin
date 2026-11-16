@@ -1,7 +1,7 @@
 {
 	"name": "robowrite",
 	"version": "0.3.0",
-	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
+	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
 		"email": "hello@robowrite.ai",
@@ -12,15 +12,25 @@
 	"license": "MIT",
 	"keywords": [
 		"robowrite",
-		"robowrite.ai",
-		"roboad"
+		"seo",
+		"geo",
+		"generative-engine-optimization",
+		"keyword-research",
+		"competitor-research",
+		"content-strategy",
+		"content-marketing",
+		"blog-writing",
+		"content-briefs",
+		"brand-voice",
+		"knowledge-base",
+		"retrieval-augmented-generation"
 	],
 	"skills": "./skills/",
 	"mcpServers": "./mcp.codex.json",
 	"interface": {
 		"displayName": "RoboWrite",
-		"shortDescription": "Plan content. Recover drafts.",
-		"longDescription": "Use RoboWrite to plan brand-aware content, review briefs, and find saved Markdown drafts from your connected workspace. Inspect your brand voice and content strategy, resume existing work, and review proposed actions before starting new content work. A RoboWrite account and organization are required. Content generation consumes your account allowance and may incur usage charges when overages are enabled. This connection does not expose CMS publication tools. Start with read-only workspace selection and an account check. Setup and usage: https://www.robowrite.ai/guides/robowrite-mcp",
+		"shortDescription": "Research-led SEO/GEO content",
+		"longDescription": "Create SEO and GEO (generative engine optimization) content informed by keyword research, competitor insights, your brand voice, and relevant knowledge. Use RoboWrite to plan topic clusters and content strategies, prepare briefs, review Content Kits, and generate or improve blog articles. Its internal retrieval-augmented generation (RAG) brings relevant context from the knowledge-library sources enabled for the writing workflow into generation. Add your own source URLs, competitor pages, and library documents to a brief; review the outline and facts before writing, then read, edit, or recover saved Markdown drafts. A RoboWrite account and workspace are required. Start by connecting and selecting your workspace. Review proposed research and generation before starting work. Setup and usage: https://www.robowrite.ai/guides/robowrite-mcp",
 		"developerName": "M Powered Ventures",
 		"category": "Productivity",
 		"websiteURL": "https://www.robowrite.ai",
@@ -28,14 +38,18 @@
 		"supportURL": "https://www.robowrite.ai/contact",
 		"logo": "./assets/robowrite-r.svg",
 		"defaultPrompt": [
-			"Check RoboWrite read-only. If needed, list workspaces, wait for my choice, then verify that account. No content changes.",
-			"Show this month's drafts for my selected brand. Do not generate.",
-			"Read my brand voice and propose a brief. Do not save anything."
+			"Plan SEO/GEO blog topics from my saved keyword strategy and brand voice. Ask before new research or generation.",
+			"Prepare a brief from my target keyword, competitor pages, and library documents. Show the plan before saving.",
+			"Find my saved blog draft. Suggest improvements for search intent, AI-answer clarity, and brand voice; do not save edits."
 		],
 		"capabilities": [
-			"Content planning",
+			"SEO and GEO content",
+			"Keyword-informed content planning",
+			"Competitor-informed briefs",
 			"Brand voice",
-			"Brief review",
+			"Knowledge-library context (RAG)",
+			"Content Kit review",
+			"Blog writing and editing",
 			"Saved draft recovery"
 		],
 		"termsOfServiceURL": "https://www.robowrite.ai/terms",

@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
+	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
 		"email": "hello@robowrite.ai"
@@ -8,8 +8,18 @@
 	"homepage": "https://www.robowrite.ai",
 	"keywords": [
 		"robowrite",
-		"robowrite.ai",
-		"roboad"
+		"seo",
+		"geo",
+		"generative-engine-optimization",
+		"keyword-research",
+		"competitor-research",
+		"content-strategy",
+		"content-marketing",
+		"blog-writing",
+		"content-briefs",
+		"brand-voice",
+		"knowledge-base",
+		"retrieval-augmented-generation"
 	],
 	"logo": "assets/robowrite-r.png",
 	"version": "0.3.0",

@@ -1,8 +1,8 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
 	"name": "ai.robowrite/mcp",
-	"title": "RoboWrite: AI Content Planning and Drafts",
-	"description": "Brand-aware AI content planning, reviewed briefs, and saved Markdown drafts with RoboWrite.",
+	"title": "RoboWrite: SEO/GEO Content Research and Writing",
+	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"version": "0.3.0",
 	"websiteUrl": "https://www.robowrite.ai",
 	"icons": [
