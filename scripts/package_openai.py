@@ -30,6 +30,8 @@ def main() -> None:
         parser.error("; ".join(vm.errors))
     entries = {name: (vm.ROOT / name).read_bytes() for name in PACKAGE_FILES}
     if args.mode == "preview":
+        manifest["name"] = "robowrite-preview"
+        manifest["interface"]["displayName"] = "RoboWrite Preview"
         # The browser preview uses the registered connection without also
         # creating a second direct MCP server with a separate login.
         manifest["apps"] = "./.app.json"
