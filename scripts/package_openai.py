@@ -34,6 +34,11 @@ def main() -> None:
         # creating a second direct MCP server with a separate login.
         manifest["apps"] = "./.app.json"
         manifest.pop("mcpServers", None)
+        # Review cases belong to the URL-based public submission. The local
+        # importer rejects plugin-level MCP cases when only an app is mapped.
+        extension = manifest.get("extensions", {}).get("com.openai", {})
+        extension.pop("review", None)
+        extension.pop("publication", None)
         entries[PACKAGE_FILES[0]] = (json.dumps(manifest, indent="\t") + "\n").encode()
         entries[".app.json"] = (json.dumps(registered, indent="\t") + "\n").encode()
     args.output.parent.mkdir(parents=True, exist_ok=True)

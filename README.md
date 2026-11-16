@@ -190,7 +190,7 @@ python3 scripts/package_openai.py --mode submission /tmp/robowrite-openai-submis
 python3 scripts/package_openai.py --mode preview /tmp/robowrite-openai-PREVIEW-NOT-FOR-SUBMISSION.zip
 ```
 
-The submission archive declares the hosted MCP URL. The local preview adds `.app.json` for the publisher-owned registered connection and removes the direct MCP declaration to avoid a second connection/login. All other packaged files are identical. Use the preview for local combined skill/tool testing; OpenAI's publishing portal rejects app references. A preview does not establish public installation or approval. See [OpenAI's package guide](https://developers.openai.com/plugins/build/plugins#create-and-test-a-plugin-locally-with-an-mcp-server).
+The submission archive declares the hosted MCP URL and includes the public review materials. The local preview adds `.app.json` for the publisher-owned registered connection and removes the direct MCP declaration to avoid a second connection/login. It omits submission-only review/publication fields, which the local importer rejects without a declared MCP server. All other packaged files are identical. Use the preview for local combined skill/tool testing; OpenAI's publishing portal rejects app references. A preview does not establish public installation or approval. See [OpenAI's package guide](https://developers.openai.com/plugins/build/plugins#create-and-test-a-plugin-locally-with-an-mcp-server).
 
 ## Releasing
 

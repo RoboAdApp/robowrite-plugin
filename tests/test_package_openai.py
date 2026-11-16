@@ -33,6 +33,9 @@ class OpenAIPackageBoundary(unittest.TestCase):
             self.assertEqual(release_manifest["mcpServers"], "./mcp.codex.json")
             self.assertEqual(preview_manifest["apps"], "./.app.json")
             self.assertNotIn("mcpServers", preview_manifest)
+            self.assertIn("test_cases", release_manifest["extensions"]["com.openai"]["review"])
+            self.assertNotIn("review", preview_manifest["extensions"]["com.openai"])
+            self.assertNotIn("publication", preview_manifest["extensions"]["com.openai"])
             for name in submission.keys() - {".codex-plugin/plugin.json"}:
                 self.assertEqual(submission[name], preview[name], name)
                 self.assertEqual(submission[name], (ROOT / name).read_bytes(), name)
