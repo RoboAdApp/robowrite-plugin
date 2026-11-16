@@ -147,6 +147,8 @@ First inspect the connected catalog, which describes capability rather than the 
 
 Use `list_organizations` through every page, inspect `get_organization_access`, and confirm the user's intended workspace and current role/eligibility. Call `switch_organization`, then `get_account` with the same `organization_id`. Show the verified target and recover its brands, content, briefs and jobs. Include that top-level `organization_id` on every subsequent content call and poll. Switching is read-only and changes no browser/global selection, content or billing. It does not authorize publication or additional spend.
 
+Discovery takes pagination arguments and must work before a workspace is selected. The catalog regression check rejects a new required workspace target on `list_organizations`.
+
 If an account call returns 409 with “Explicit workspace selection is required for this grant,” run that listing/access flow and wait for the user's target before checking its account and recovering resources. Do not reconnect or retry the original action without a target. Every fresh chat or client must establish its own explicit intended target and verify its account; never import another chat's selections.
 
 Discard prior workspace object choices after a switch. Never reuse their IDs or retry a write in a different workspace. Canceling preserves prior intent without action. Membership, role, deletion and unproven enterprise/SSO eligibility stop work safely. After updating or reconnecting, refresh the client catalog, record its connector version/build/catalog hash, and check the target account again. A valid manifest or SDK result alone does not prove native installation or switching.

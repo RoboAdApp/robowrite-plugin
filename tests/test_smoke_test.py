@@ -221,6 +221,13 @@ class EditorialCatalogContract(unittest.TestCase):
         for tool in self.tools:
             name = tool["name"]
             if name == "list_organizations":
+                with self.subTest(tool=name, change="requires_workspace_before_discovery"):
+                    tools = copy.deepcopy(self.tools)
+                    schema = next(item for item in tools if item["name"] == name)["inputSchema"]
+                    schema["properties"]["organization_id"] = {"type": "string"}
+                    schema["required"].append("organization_id")
+                    errors = sm.editorial_catalog_errors(tools)
+                    self.assertTrue(any(name in error and "organization_id" in error for error in errors))
                 continue
             required_target = name in ("get_organization_access", "switch_organization")
             for change in ("missing", "requiredness", "integer", "extra_required"):
