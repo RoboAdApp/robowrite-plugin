@@ -26,6 +26,7 @@
 		"retrieval-augmented-generation"
 	],
 	"skills": "./skills/",
+	"apps": "./.app.json",
 	"mcpServers": "./mcp.codex.json",
 	"interface": {
 		"displayName": "RoboWrite",

@@ -112,7 +112,7 @@ class CurrentRepoContract(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("OK 11 manifests valid", result.stdout)
+        self.assertIn("OK 12 manifests valid", result.stdout)
 
     def test_matching_tag_passes_and_wrong_tag_fails(self) -> None:
         vm.errors.clear()
@@ -136,6 +136,24 @@ class CurrentRepoContract(unittest.TestCase):
         )
         self.assertNotEqual(mismatch.returncode, 0)
         self.assertIn("does not match tag v9.9.9", mismatch.stdout)
+
+
+class RegisteredOpenAIConnection(unittest.TestCase):
+    def test_private_test_app_cannot_replace_the_publisher_connection(self) -> None:
+        vm.errors.clear()
+        vm.check_openai_registered_app(
+            {"apps": "./.app.json"},
+            {"apps": {"robowrite": {"id": "asdk_app_private_test"}}},
+        )
+        self.assertTrue(any("publisher-owned" in error for error in vm.errors))
+
+    def test_external_mapping_path_is_rejected(self) -> None:
+        vm.errors.clear()
+        vm.check_openai_registered_app(
+            {"apps": "../.app.json"},
+            {"apps": {"robowrite": {"id": vm.OPENAI_APP_ID}}},
+        )
+        self.assertTrue(any("apps must reference" in error for error in vm.errors))
 
 
 class WorkspaceConsentContract(unittest.TestCase):

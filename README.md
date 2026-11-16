@@ -17,7 +17,7 @@ This repository contains the client formats below. A platform-specific submissio
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
-- Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
+- OpenAI/Codex metadata in `.codex-plugin/plugin.json`, with the publisher-owned registered connection in `.app.json` for hosted clients, URL-only `mcp.codex.json` for clients that load bundled MCP servers, and `.agents/plugins/marketplace.json`. The registered mapping uses the M Powered Ventures publishing draft's app ID, not a personal acceptance-test connection. Complete browser and desktop tool/skill authentication still needs native acceptance; the mapping alone is not proof.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
 - Shared [content workflow](skills/robowrite-content-ops/SKILL.md) and [account-first setup](skills/robowrite-setup/SKILL.md) skills.
