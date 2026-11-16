@@ -20,7 +20,7 @@
 	"interface": {
 		"displayName": "RoboWrite",
 		"shortDescription": "Plan content. Recover drafts.",
-		"longDescription": "Use RoboWrite to plan brand-aware content, review briefs, and find saved Markdown drafts from your connected workspace. Inspect your brand voice and content strategy, resume existing work, and review proposed actions before starting new content work. A RoboWrite account and organization are required. Content generation consumes your account allowance and may incur usage charges when overages are enabled. This connection does not expose CMS publication tools. Start with a read-only account check. Setup and usage: https://www.robowrite.ai/guides/robowrite-mcp",
+		"longDescription": "Use RoboWrite to plan brand-aware content, review briefs, and find saved Markdown drafts from your connected workspace. Inspect your brand voice and content strategy, resume existing work, and review proposed actions before starting new content work. A RoboWrite account and organization are required. Content generation consumes your account allowance and may incur usage charges when overages are enabled. This connection does not expose CMS publication tools. Start with read-only workspace selection and an account check. Setup and usage: https://www.robowrite.ai/guides/robowrite-mcp",
 		"developerName": "M Powered Ventures",
 		"category": "Productivity",
 		"websiteURL": "https://www.robowrite.ai",
@@ -28,7 +28,7 @@
 		"supportURL": "https://www.robowrite.ai/contact",
 		"logo": "./assets/robowrite-r.svg",
 		"defaultPrompt": [
-			"Use RoboWrite to check the connected account. Make only get_account.",
+			"Check RoboWrite read-only. If needed, list workspaces, wait for my choice, then verify that account. No content changes.",
 			"Show this month's drafts for my selected brand. Do not generate.",
 			"Read my brand voice and propose a brief. Do not save anything."
 		],
@@ -51,40 +51,40 @@
 					"positive": [
 						{
 							"description": "Verify the connected account",
-							"prompt": "Check my connected RoboWrite account and organization. Make only the read-only account call.",
-							"tools_triggered": "get_account",
-							"expected_behavior": "Identify the authorized organization and account readiness without creating or modifying resources."
+							"prompt": "Check my RoboWrite connection read-only. For an existing valid pinned connection, check its account. If workspace selection is required, list my workspaces and access, wait for my explicit choice, then verify that workspace's account. Do not create or modify content.",
+							"tools_triggered": "get_account; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
+							"expected_behavior": "For an already-valid pinned grant, identify its authorized account without a target override. For a multi-workspace grant or a selection-required 409, list all workspace pages, show role and eligibility, wait for the user's intended target, verify selection and call get_account with that explicit organization_id. Do not import another chat's selection, reconnect for selection alone, modify content or treat readiness as allowance approval."
 						},
 						{
 							"description": "Read the existing brand voice",
 							"prompt": "Show the existing brand voice in my RoboWrite workspace. Do not change it.",
-							"tools_triggered": "get_account, list_brands, get_brand",
-							"expected_behavior": "Return the existing accessible brand and voice settings. Ask for a selection if more than one brand is available."
+							"tools_triggered": "get_account, list_brands, get_brand; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
+							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call. Return the existing accessible brand and voice settings. Ask for a selection if more than one brand is available."
 						},
 						{
 							"description": "Recover a saved draft",
 							"prompt": "Find my saved Markdown drafts in RoboWrite and open the latest one for my selected brand. Do not generate anything.",
-							"tools_triggered": "get_account, list_brands, list_content, read_draft",
-							"expected_behavior": "Find an existing accessible item and return its saved Markdown, preserving item identity and reporting any missing saved version accurately."
+							"tools_triggered": "get_account, list_brands, list_content, read_draft; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
+							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call. Recover that workspace's brand and item selections, then return saved Markdown, preserving item identity and reporting any missing saved version accurately."
 						},
 						{
 							"description": "Read an existing brief",
 							"prompt": "Find and read an existing content brief for my selected RoboWrite brand. Do not create or edit a brief.",
-							"tools_triggered": "get_account, list_brands, list_briefs, get_brief",
-							"expected_behavior": "Return the saved brief belonging to the selected authorized brand; follow pagination when necessary."
+							"tools_triggered": "get_account, list_brands, list_briefs, get_brief; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
+							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call. Recover its brand and brief selections. Return the saved brief belonging to the selected authorized brand; follow pagination when necessary."
 						},
 						{
 							"description": "Recover job status without restarting work",
 							"prompt": "Check the latest existing content job for my RoboWrite brand. Do not restart it or generate anything.",
-							"tools_triggered": "get_account, list_brands, list_jobs, get_job",
-							"expected_behavior": "Report the existing job's actual status and identifiers. Do not equate a completed job with a saved draft or start a replacement job."
+							"tools_triggered": "get_account, list_brands, list_jobs, get_job; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
+							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call and poll. Recover that workspace's brand and job selections. Report the existing job's actual status and identifiers. Do not equate a completed job with a saved draft or start a replacement job."
 						}
 					],
 					"negative": [
 						{
 							"description": "Cross-organization access is denied",
 							"prompt": "Read a draft from a RoboWrite organization my connected account cannot access.",
-							"expected_behavior": "Do not fabricate access, switch organization IDs, or return inaccessible data. Explain the limitation or request authorized reconnection."
+							"expected_behavior": "Do not fabricate access, substitute another organization's IDs, or return inaccessible data. Stop on a membership, role or security refusal and explain the limitation; reconnect only for missing consent or a token problem, never to bypass access checks."
 						},
 						{
 							"description": "CMS publication is unavailable",
@@ -100,7 +100,7 @@
 				}
 			},
 			"publication": {
-				"release_notes": "RoboWrite 0.3.0 uses the canonical hosted MCP endpoint, account-first setup, and current saved-draft editing and editorial recovery guidance. Reconnect after migration."
+				"release_notes": "Release requires the documented native consent, workspace selection/cancel/return, update/reconnect and parallel-client acceptance gates to pass. This 0.3.0 candidate prepares canonical MCP access, explicit workspace context and saved-draft recovery. Existing valid pinned grants retain authority; endpoint migration or missing-consent reconnect may request combined discovery/content consent. Publication remains separate."
 			}
 		}
 	}

@@ -138,6 +138,45 @@ class CurrentRepoContract(unittest.TestCase):
         self.assertIn("does not match tag v9.9.9", mismatch.stdout)
 
 
+class WorkspaceConsentContract(unittest.TestCase):
+    def test_clients_reject_other_scope_serializations(self) -> None:
+        """A correct scope set in another client's format cannot load reliably."""
+        wrong_formats = {
+            ".mcp.json": ["robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"],
+            "mcp.json": "robowrite:organizations:read robowrite:content:all_orgs offline_access",
+            "gemini-extension.json": "robowrite:organizations:read robowrite:content:all_orgs offline_access",
+        }
+        for relative, scopes in wrong_formats.items():
+            with self.subTest(manifest=relative):
+                manifest = copy.deepcopy(vm.load(relative))
+                path = vm.STATIC_SCOPE_PATHS[relative]
+                parent = manifest
+                for key in path[:-1]:
+                    parent = parent[key]
+                parent[path[-1]] = scopes
+                vm.errors.clear()
+                vm.check_connection_scopes(relative, manifest)
+                self.assertTrue(any("format" in error for error in vm.errors), vm.errors)
+
+    def test_shipped_connections_reject_incomplete_or_implicitly_expanded_consent(self) -> None:
+        for relative, path in vm.STATIC_SCOPE_PATHS.items():
+            original = vm.load(relative)
+            for invalid in (
+                ["robowrite:organizations:read", "offline_access"],
+                ["user:org:read", "robowrite:content", "offline_access"],
+                ["robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access", "robowrite:publish:all_orgs"],
+            ):
+                with self.subTest(manifest=relative, scopes=invalid):
+                    manifest = copy.deepcopy(original)
+                    parent = manifest
+                    for key in path[:-1]:
+                        parent = parent[key]
+                    parent[path[-1]] = " ".join(invalid) if relative == ".mcp.json" else invalid
+                    vm.errors.clear()
+                    vm.check_connection_scopes(relative, manifest)
+                    self.assertTrue(vm.errors)
+
+
 class OpenAIDirectoryMetadata(unittest.TestCase):
     def setUp(self) -> None:
         self.manifest = vm.load(".codex-plugin/plugin.json")

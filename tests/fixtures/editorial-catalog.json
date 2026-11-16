@@ -32,6 +32,11 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [],
@@ -52,6 +57,11 @@
             "review_id": {
               "format": "uuid",
               "title": "Review Id",
+              "type": "string"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
               "type": "string"
             }
           },
@@ -86,6 +96,11 @@
               ],
               "title": "ReviewCreateRequest",
               "type": "object"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -152,6 +167,11 @@
               ],
               "title": "ReviewDecisionRequest",
               "type": "object"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -171,7 +191,13 @@
         "name": "get_account",
         "inputSchema": {
           "type": "object",
-          "properties": {},
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
           "required": [],
           "additionalProperties": false
         },
@@ -237,6 +263,11 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -259,6 +290,11 @@
             "job_id": {
               "format": "uuid",
               "title": "Job Id",
+              "type": "string"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
               "type": "string"
             }
           },
@@ -337,6 +373,11 @@
               ],
               "title": "EditorialEditRequest",
               "type": "object"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -388,6 +429,11 @@
               ],
               "title": "EditorialRestoreRequest",
               "type": "object"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -416,6 +462,11 @@
             "content_version_id": {
               "format": "uuid",
               "title": "Content Version Id",
+              "type": "string"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
               "type": "string"
             }
           },
@@ -524,6 +575,11 @@
               "maxLength": 128,
               "pattern": "^[!-~]+$",
               "description": "Stable operation key. Reuse for the same request after a dropped response; use a new key for a new intended operation."
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -570,6 +626,11 @@
               ],
               "title": "EditorialCheckRequest",
               "type": "object"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -594,6 +655,11 @@
               "format": "uuid",
               "title": "Content Item Id",
               "type": "string"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
             }
           },
           "required": [
@@ -606,6 +672,84 @@
           "destructiveHint": false,
           "openWorldHint": true,
           "idempotentHint": true
+        }
+      },
+      {
+        "name": "list_organizations",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "List available workspaces"
+        }
+      },
+      {
+        "name": "get_organization_access",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "organization_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "Check your workspace access"
+        }
+      },
+      {
+        "name": "switch_organization",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "organization_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true,
+          "title": "Switch the intended workspace"
         }
       }
     ]

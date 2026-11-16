@@ -191,27 +191,61 @@ class EditorialCatalogContract(unittest.TestCase):
                 self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
 
     def test_missing_tool_names_the_unavailable_operation(self) -> None:
-        tools = [tool for tool in self.tools if tool["name"] != "edit_draft"]
-        self.assertIn("missing required tool edit_draft", sm.editorial_catalog_errors(tools))
+        for name in ("edit_draft", "list_organizations", "get_organization_access", "switch_organization"):
+            with self.subTest(missing=name):
+                tools = [tool for tool in self.tools if tool["name"] != name]
+                self.assertIn(f"missing required tool {name}", sm.editorial_catalog_errors(tools))
 
     def test_review_pagination_keeps_optional_integer_arguments(self) -> None:
-        for key in ("offset", "limit"):
-            for change in ("missing", "string", "required"):
-                with self.subTest(key=key, change=change):
+        for name in ("list_reviews", "list_organizations"):
+            for key in ("offset", "limit"):
+                for change in ("missing", "string", "required"):
+                    with self.subTest(tool=name, key=key, change=change):
+                        tools = copy.deepcopy(self.tools)
+                        schema = next(tool for tool in tools if tool["name"] == name)["inputSchema"]
+                        if change == "missing":
+                            schema["properties"].pop(key)
+                        elif change == "string":
+                            schema["properties"][key] = {"type": "string"}
+                        else:
+                            schema["required"].append(key)
+                        errors = sm.editorial_catalog_errors(tools)
+                        self.assertTrue(any(name in error and key in error for error in errors))
+                for compatible in ({"type": ["integer"]}, {"anyOf": [{"type": "integer"}]}, {}):
+                    with self.subTest(tool=name, key=key, compatible=compatible):
+                        self.tool(name)["inputSchema"]["properties"][key] = compatible
+                        self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
+    def test_workspace_targets_keep_documented_type_and_requiredness(self) -> None:
+        """Keep broad targets valid without requiring them on pinned calls."""
+        for tool in self.tools:
+            name = tool["name"]
+            if name == "list_organizations":
+                with self.subTest(tool=name, change="requires_workspace_before_discovery"):
                     tools = copy.deepcopy(self.tools)
-                    schema = next(tool for tool in tools if tool["name"] == "list_reviews")["inputSchema"]
-                    if change == "missing":
-                        schema["properties"].pop(key)
-                    elif change == "string":
-                        schema["properties"][key] = {"type": "string"}
-                    else:
-                        schema["required"].append(key)
+                    schema = next(item for item in tools if item["name"] == name)["inputSchema"]
+                    schema["properties"]["organization_id"] = {"type": "string"}
+                    schema["required"].append("organization_id")
                     errors = sm.editorial_catalog_errors(tools)
-                    self.assertTrue(any("list_reviews" in error and key in error for error in errors))
-            for compatible in ({"type": ["integer"]}, {"anyOf": [{"type": "integer"}]}, {}):
-                with self.subTest(key=key, compatible=compatible):
-                    self.tool("list_reviews")["inputSchema"]["properties"][key] = compatible
-                    self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+                    self.assertTrue(any(name in error and "organization_id" in error for error in errors))
+                continue
+            required_target = name in ("get_organization_access", "switch_organization")
+            for change in ("missing", "requiredness", "integer", "extra_required"):
+                with self.subTest(tool=name, change=change):
+                    tools = copy.deepcopy(self.tools)
+                    schema = next(tool for tool in tools if tool["name"] == name)["inputSchema"]
+                    if change == "missing":
+                        schema["properties"].pop("organization_id")
+                    elif change == "requiredness":
+                        if required_target:
+                            schema["required"].remove("organization_id")
+                        else:
+                            schema["required"].append("organization_id")
+                    elif change == "integer":
+                        schema["properties"]["organization_id"] = {"type": "integer"}
+                    else:
+                        schema["required"].append("unexpected_argument")
+                    self.assertTrue(any(name in error for error in sm.editorial_catalog_errors(tools)))
 
     def test_version_binding_cannot_disappear_or_become_optional(self) -> None:
         for removal in ("properties", "required"):

@@ -61,6 +61,12 @@ EDITORIAL_READ_IDS = {
     "list_reviews": (),
     "get_review": ("review_id",),
 }
+# New packaged connections require these live read-only operations before use.
+WORKSPACE_READ_IDS = {
+    "list_organizations": (),
+    "get_organization_access": ("organization_id",),
+    "switch_organization": ("organization_id",),
+}
 SCHEMA_TYPES = frozenset(("null", "boolean", "object", "array", "number", "integer", "string"))
 
 failures: list[str] = []
@@ -198,7 +204,8 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             errors.append("catalog entries must have unique nonempty names")
             continue
         catalog[name] = tool
-    required = set(EDITORIAL_READ_IDS) | set(EDITORIAL_BODY_UUIDS)
+    read_ids = EDITORIAL_READ_IDS | WORKSPACE_READ_IDS
+    required = set(read_ids) | set(EDITORIAL_BODY_UUIDS)
     for name in sorted(required - catalog.keys()):
         errors.append(f"missing required tool {name}")
 
@@ -264,14 +271,16 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         annotations = tool.get("annotations", {})
         if not isinstance(annotations, dict) or annotations.get("readOnlyHint") is not (not writing):
             errors.append(f"{name} readOnlyHint does not match its documented operation")
+        if name not in WORKSPACE_READ_IDS:
+            optional_value(schema, "organization_id", "string", name)
         if not writing:
-            keys = EDITORIAL_READ_IDS[name]
+            keys = read_ids[name]
             for key in keys:
-                field(schema, key, "string", name, uuid=True)
+                field(schema, key, "string", name, uuid=name not in WORKSPACE_READ_IDS)
             required_only(schema, set(keys), name)
             if name == "get_content":
                 optional_value(schema, "version", "integer", name, nullable=True)
-            elif name == "list_reviews":
+            elif name in ("list_reviews", "list_organizations"):
                 for key in ("offset", "limit"):
                     optional_value(schema, key, "integer", name)
             continue
@@ -350,7 +359,7 @@ def check_public_tool_catalog() -> None:
     for message in errors:
         fail(f"public catalog: {message}")
     if not errors:
-        ok("public catalog exposes the saved-draft workflow argument and replay contracts")
+        ok("public catalog exposes workspace selection and saved-draft workflow argument/replay contracts")
 
 
 def check_unauthenticated_challenge() -> None:

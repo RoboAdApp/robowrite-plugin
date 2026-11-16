@@ -25,6 +25,18 @@ ROOT = Path(__file__).resolve().parent.parent
 MCP_URL = "https://mcp.robowrite.ai/mcp"
 # Clients name the remote endpoint differently (Gemini CLI uses `httpUrl`).
 MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
+# New installed connections request one disclosed discovery/content consent.
+# Old grants stay pinned; no manifest may request publication implicitly.
+CONNECTION_SCOPES = frozenset({
+    "robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"
+})
+STRING_SCOPE_MANIFEST = ".mcp.json"
+STATIC_SCOPE_PATHS = {
+    STRING_SCOPE_MANIFEST: ("mcpServers", "robowrite", "oauth", "scopes"),
+    "mcp.json": ("mcpServers", "robowrite", "auth", "scopes"),
+    "gemini-extension.json": ("mcpServers", "robowrite", "oauth", "scopes"),
+}
+
 REGISTRY_NAME = "ai.robowrite/mcp"
 REGISTRY_DESCRIPTION_MAX = 100
 OPENAI_TEXT_LIMITS = {
@@ -177,6 +189,28 @@ def walk(node, relative: str, trail: str = "") -> None:
             walk(value, relative, f"{trail}[{index}]")
 
 
+def check_connection_scopes(relative: str, manifest: dict) -> None:
+    """Keep shipped static connections on the reviewed consent bundle."""
+    path = STATIC_SCOPE_PATHS.get(relative)
+    if path is None:
+        return
+    value = manifest
+    for key in path:
+        value = value.get(key) if isinstance(value, dict) else None
+    expected_type = str if relative == STRING_SCOPE_MANIFEST else list
+    if not isinstance(value, expected_type):
+        fail(f"{relative}: scopes must use the client's {expected_type.__name__} format")
+        return
+    scopes = value.split() if isinstance(value, str) else value
+    if (
+        not isinstance(scopes, list)
+        or not all(isinstance(scope, str) for scope in scopes)
+        or len(scopes) != len(CONNECTION_SCOPES)
+        or frozenset(scopes) != CONNECTION_SCOPES
+    ):
+        fail(f"{relative}: scopes must request only combined workspace discovery/content and offline access")
+
+
 def check_references(relative: str, manifest: dict) -> None:
     """Relative paths named by a plugin manifest must exist."""
     references = [(key, manifest.get(key)) for key in ("mcpServers", "logo", "skills")]
@@ -308,6 +342,7 @@ def main() -> int:
         if manifest is None:
             continue
         walk(manifest, relative)
+        check_connection_scopes(relative, manifest)
         if relative in VERSIONED:
             version = manifest.get("version")
             if not isinstance(version, str) or not SEMVER.match(version):
