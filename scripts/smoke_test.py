@@ -322,6 +322,7 @@ def editorial_catalog_errors(tools: list) -> list[str]:
         elif not isinstance(properties, dict) or "idempotency_key" in properties or schema.get("additionalProperties") is not False:
             errors.append(f"{name} must reject an idempotency_key argument; replay uses the documented body fields")
         if name == "decide_review":
+            optional_value(body, "feedback", "string", f"{name}.body")
             action = field(body, "action", "string", f"{name}.body")
             choices = action.get("enum")
             if not isinstance(choices, list) or any(not isinstance(value, str) for value in choices) or not {"approve", "reject", "request_revision"}.issubset(choices):

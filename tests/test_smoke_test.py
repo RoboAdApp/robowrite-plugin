@@ -309,6 +309,27 @@ class EditorialCatalogContract(unittest.TestCase):
         action["enum"].remove("request_revision")
         self.assertTrue(any("decision choices" in error for error in sm.editorial_catalog_errors(self.tools)))
 
+    def test_review_decisions_reject_missing_or_disallowed_feedback(self) -> None:
+        for feedback in (None, False, {"type": "integer"}, {"type": "null"}):
+            with self.subTest(feedback=feedback):
+                tools = copy.deepcopy(self.tools)
+                body = next(tool for tool in tools if tool["name"] == "decide_review")["inputSchema"]["properties"]["body"]
+                body["additionalProperties"] = False
+                if feedback is None:
+                    body["properties"].pop("feedback")
+                else:
+                    body["properties"]["feedback"] = feedback
+                errors = sm.editorial_catalog_errors(tools)
+                self.assertTrue(any("decide_review.body.feedback" in error for error in errors), errors)
+
+    def test_review_decisions_accept_string_compatible_optional_feedback(self) -> None:
+        for feedback in ({"type": "string"}, {"type": ["string", "null"]}, {"anyOf": [{"type": "string"}, {"type": "null"}]}):
+            with self.subTest(feedback=feedback):
+                body = self.tool("decide_review")["inputSchema"]["properties"]["body"]
+                body["properties"]["feedback"] = feedback
+                self.assertNotIn("feedback", body["required"])
+                self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
     def test_rewrite_key_required_and_other_write_keys_forbidden(self) -> None:
         self.tool("rewrite_draft")["inputSchema"]["required"].remove("idempotency_key")
         self.assertTrue(any("idempotency_key" in error for error in sm.editorial_catalog_errors(self.tools)))
