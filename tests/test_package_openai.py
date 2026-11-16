@@ -1,0 +1,44 @@
+"""The registered preview must never leak into the public submission archive."""
+
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class OpenAIPackageBoundary(unittest.TestCase):
+    def test_submission_and_preview_preserve_content_but_use_distinct_connections(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            archives = {}
+            for mode in ("submission", "preview"):
+                target = Path(temporary) / f"{mode}.zip"
+                result = subprocess.run(
+                    [sys.executable, str(ROOT / "scripts/package_openai.py"),
+                     "--mode", mode, str(target)],
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                with zipfile.ZipFile(target) as archive:
+                    archives[mode] = {name: archive.read(name) for name in archive.namelist()}
+            submission, preview = archives["submission"], archives["preview"]
+            self.assertNotIn(".app.json", submission)
+            release_manifest = json.loads(submission[".codex-plugin/plugin.json"])
+            preview_manifest = json.loads(preview[".codex-plugin/plugin.json"])
+            self.assertNotIn("apps", release_manifest)
+            self.assertEqual(release_manifest["mcpServers"], "./mcp.codex.json")
+            self.assertEqual(preview_manifest["apps"], "./.app.json")
+            self.assertNotIn("mcpServers", preview_manifest)
+            for name in submission.keys() - {".codex-plugin/plugin.json"}:
+                self.assertEqual(submission[name], preview[name], name)
+                self.assertEqual(submission[name], (ROOT / name).read_bytes(), name)
+            expected = json.loads((ROOT / "preview/openai-app.json").read_text())
+            self.assertEqual(json.loads(preview[".app.json"]), expected)
+
+
+if __name__ == "__main__":
+    unittest.main()

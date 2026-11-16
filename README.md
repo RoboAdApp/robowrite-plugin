@@ -17,7 +17,7 @@ This repository contains the client formats below. A platform-specific submissio
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
-- OpenAI/Codex metadata in `.codex-plugin/plugin.json`, with the publisher-owned registered connection in `.app.json` for hosted clients, URL-only `mcp.codex.json` for clients that load bundled MCP servers, and `.agents/plugins/marketplace.json`. The registered mapping uses the M Powered Ventures publishing draft's app ID, not a personal acceptance-test connection. Complete browser and desktop tool/skill authentication still needs native acceptance; the mapping alone is not proof.
+- OpenAI/Codex submission metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`. A separate local preview mapping in `preview/openai-app.json` uses the M Powered Ventures registered app, not a personal acceptance-test connection. OpenAI's publishing portal rejects `.app.json` references in submission packages; keep that mapping in preview packages only. Complete browser and desktop tool/skill authentication still needs native acceptance.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
 - Shared [content workflow](skills/robowrite-content-ops/SKILL.md) and [account-first setup](skills/robowrite-setup/SKILL.md) skills.
@@ -180,6 +180,17 @@ Start with a read-only review:
 After reviewing the plan, request the draft workflow:
 
 > Use my website to propose a brand voice and content brief for my intended audience. Let me review them before you create a draft-only property or start generation. Save the final draft in RoboWrite and show me the stored Markdown.
+
+## Build OpenAI submission and preview packages
+
+Use Python 3.12 or newer. Choose the package purpose explicitly; existing output files are never overwritten:
+
+```bash
+python3 scripts/package_openai.py --mode submission /tmp/robowrite-openai-submission.zip
+python3 scripts/package_openai.py --mode preview /tmp/robowrite-openai-PREVIEW-NOT-FOR-SUBMISSION.zip
+```
+
+The submission archive declares the hosted MCP URL. The local preview adds `.app.json` for the publisher-owned registered connection and removes the direct MCP declaration to avoid a second connection/login. All other packaged files are identical. Use the preview for local combined skill/tool testing; OpenAI's publishing portal rejects app references. A preview does not establish public installation or approval. See [OpenAI's package guide](https://developers.openai.com/plugins/build/plugins#create-and-test-a-plugin-locally-with-an-mcp-server).
 
 ## Releasing
 

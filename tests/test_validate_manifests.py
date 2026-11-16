@@ -142,18 +142,22 @@ class RegisteredOpenAIConnection(unittest.TestCase):
     def test_private_test_app_cannot_replace_the_publisher_connection(self) -> None:
         vm.errors.clear()
         vm.check_openai_registered_app(
-            {"apps": "./.app.json"},
+            {},
             {"apps": {"robowrite": {"id": "asdk_app_private_test"}}},
         )
         self.assertTrue(any("publisher-owned" in error for error in vm.errors))
 
-    def test_external_mapping_path_is_rejected(self) -> None:
-        vm.errors.clear()
-        vm.check_openai_registered_app(
-            {"apps": "../.app.json"},
-            {"apps": {"robowrite": {"id": vm.OPENAI_APP_ID}}},
-        )
-        self.assertTrue(any("apps must reference" in error for error in vm.errors))
+    def test_submission_rejects_app_references_in_both_supported_locations(self) -> None:
+        for manifest in (
+            {"apps": "./.app.json"},
+            {"extensions": {"com.openai": {"apps": "./.app.json"}}},
+        ):
+            with self.subTest(manifest=manifest):
+                vm.errors.clear()
+                vm.check_openai_registered_app(
+                    manifest, {"apps": {"robowrite": {"id": vm.OPENAI_APP_ID}}}
+                )
+                self.assertTrue(any("preview-only" in error for error in vm.errors))
 
 
 class WorkspaceConsentContract(unittest.TestCase):

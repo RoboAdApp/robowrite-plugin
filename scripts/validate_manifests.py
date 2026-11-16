@@ -39,7 +39,6 @@ STATIC_SCOPE_PATHS = {
 
 REGISTRY_NAME = "ai.robowrite/mcp"
 OPENAI_APP_ID = "asdk_app_6af5d3adb07c8191b49b773cc82b6c7c"
-OPENAI_APPS_PATH = "./.app.json"
 REGISTRY_DESCRIPTION_MAX = 100
 OPENAI_TEXT_LIMITS = {
     "displayName": 30,
@@ -137,7 +136,7 @@ VERSIONED = [
 
 # JSON files that must parse, whether or not they carry a version.
 JSON_FILES = VERSIONED + [
-    ".app.json",
+    "preview/openai-app.json",
     ".mcp.json",
     "mcp.json",
     "mcp.codex.json",
@@ -230,11 +229,13 @@ def check_references(relative: str, manifest: dict) -> None:
 
 
 def check_openai_registered_app(manifest: dict, registered: dict | None) -> None:
-    """Bind the public package to the publisher-owned connection, not a personal test app."""
-    if manifest.get("apps") != OPENAI_APPS_PATH:
-        fail(f".codex-plugin/plugin.json: apps must reference {OPENAI_APPS_PATH}")
+    """Keep app references preview-only and pin their publisher-owned identity."""
+    extensions = manifest.get("extensions")
+    extension = extensions.get("com.openai") if isinstance(extensions, dict) else None
+    if "apps" in manifest or (isinstance(extension, dict) and "apps" in extension):
+        fail(".codex-plugin/plugin.json: apps are preview-only; submission must declare the MCP URL")
     if registered != {"apps": {"robowrite": {"id": OPENAI_APP_ID}}}:
-        fail(".app.json: must map only robowrite to the publisher-owned OpenAI app")
+        fail("preview/openai-app.json: must map only robowrite to the publisher-owned OpenAI app")
 
 
 def check_openai_metadata(relative: str, manifest: dict) -> None:
@@ -364,7 +365,7 @@ def main() -> int:
             check_references(relative, manifest)
         if relative == ".codex-plugin/plugin.json":
             check_openai_metadata(relative, manifest)
-            check_openai_registered_app(manifest, manifests.get(".app.json"))
+            check_openai_registered_app(manifest, manifests.get("preview/openai-app.json"))
 
     if len(set(versions.values())) > 1:
         detail = ", ".join(f"{path}={version}" for path, version in versions.items())
