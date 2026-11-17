@@ -11,8 +11,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
 import os
+import secrets
 import sys
 import urllib.error
 import urllib.parse
@@ -32,14 +35,14 @@ USER_AGENT = "robowrite-plugin-smoke/1"
 JSONRPC_VERSION = "2.0"
 MCP_REQUEST_ID = 1
 
-# A public Client ID Metadata Document that is known to be well formed. Used
-# only to check that the authorization server can resolve such documents.
-# redirect_uri must be listed in that document; Clerk validates it on the
-# hop after /oauth/authorize.
-CIMD_PROBE = ("https://vscode.dev/oauth/client-metadata.json", "http://127.0.0.1:33418/")
-
-# Any S256 challenge works; the flow is never completed.
-CODE_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+# Signed-out probes stop at this handoff without opening it.
+SIGN_IN_URL = "https://accounts.robowrite.ai/sign-in"
+CODEX_CLIENT = "https://chatgpt.com/oauth/codex/client.json"
+CHATGPT_CLIENT = "https://chatgpt.com/oauth/client.json"
+OPENAI_RECONNECT_SCOPES = (
+    "user:org:read", "robowrite:content", "robowrite:organizations:read",
+    "robowrite:content:all_orgs", "offline_access",
+)
 
 # These are contracts promised by the saved-draft workflow, not a fixed size for
 # the entire catalog. This smoke targets the canonical public server; a native
@@ -407,6 +410,14 @@ def check_authorization_server(issuer: str) -> dict | None:
     return metadata
 
 
+def oauth_error_label(value: object) -> str:
+    # Report only protocol categories. Provider details can echo request data.
+    if value in ("invalid_client", "invalid_request", "invalid_scope", "unauthorized_client",
+                 "access_denied", "unsupported_response_type", "server_error", "temporarily_unavailable"):
+        return str(value)
+    return "OAuth error"
+
+
 def authorize_outcome(endpoint: str, client_id: str, redirect_uri: str, scopes: list[str]):
     """Start an authorization request and report how the server treats the client.
 
@@ -414,34 +425,45 @@ def authorize_outcome(endpoint: str, client_id: str, redirect_uri: str, scopes: 
     "error" means the server could not be reached. The server
     validates the client on the hop after the first redirect, so follow one hop.
     """
+    verifier = secrets.token_urlsafe(48)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
     query = urllib.parse.urlencode(
         {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "code_challenge": CODE_CHALLENGE,
+            "code_challenge": base64.urlsafe_b64encode(digest).decode("ascii").rstrip("="),
             "code_challenge_method": "S256",
-            "state": "smoke",
+            "state": secrets.token_urlsafe(24),
             "scope": " ".join(scopes),
             "resource": MCP_URL,
         }
     )
     url = f"{endpoint}?{query}"
+    issuer = urllib.parse.urlsplit(endpoint)
     for _ in range(3):
         status, headers, body = fetch(url)
         if status == 0:
-            return "error", body
+            # A transport exception can include the full authorization URL.
+            return "error", "authorization request could not reach the issuer"
         error = as_json(body)
         if isinstance(error, dict) and error.get("error"):
-            return "rejected", f"{error['error']}: {error.get('error_description', '')}"
+            return "rejected", oauth_error_label(error["error"])
         location = headers.get("Location")
         if status in (301, 302, 303, 307, 308) and location:
             target = urllib.parse.urljoin(url, location)
-            if urllib.parse.urlparse(target).netloc != urllib.parse.urlparse(endpoint).netloc:
-                # Handed off to the hosted sign-in page: the client and redirect were accepted.
-                if "error=" in urllib.parse.urlparse(target).query:
-                    return "rejected", f"redirected with an error: {target[:160]}"
-                return "accepted", urllib.parse.urlparse(target).netloc
+            destination = urllib.parse.urlsplit(target)
+            params = urllib.parse.parse_qs(destination.query, keep_blank_values=True)
+            fragment = urllib.parse.parse_qs(destination.fragment, keep_blank_values=True)
+            for values in (params, fragment):
+                if "error" in values:
+                    return "rejected", oauth_error_label(values["error"][0])
+            if destination._replace(query="", fragment="").geturl() == SIGN_IN_URL:
+                return "accepted", SIGN_IN_URL
+            if (destination.scheme, destination.netloc, destination.path) != (
+                issuer.scheme, issuer.netloc, "/oauth/authorize/continue",
+            ):
+                return "inconclusive", "unexpected authorization redirect"
             url = target
             continue
         return "inconclusive", f"HTTP {status} without an OAuth result"
@@ -481,9 +503,9 @@ def check_static_clients(endpoint: str) -> None:
             fail(f"{label}: {detail}")
         elif outcome == "rejected":
             hint = ""
-            if "redirect_uri" in detail or detail.startswith("invalid_request"):
+            if detail == "invalid_request":
                 hint = (
-                    f" Fix: add {redirect_uri} to the redirect URIs of OAuth application"
+                    f" Check whether {redirect_uri} is an allowed redirect URI for OAuth application"
                     f" {client_id} in the Clerk dashboard, then re-run this job."
                 )
             fail(f"{label} is rejected by the authorization server.{hint} Server said: {detail}")
@@ -495,15 +517,19 @@ def check_metadata_document_clients(metadata: dict) -> None:
     if not metadata.get("client_id_metadata_document_supported"):
         warn("authorization server does not advertise Client ID Metadata Documents")
         return
-    client_id, redirect_uri = CIMD_PROBE
-    outcome, detail = authorize_outcome(
-        metadata["authorization_endpoint"], client_id, redirect_uri, ["user:org:read", "offline_access"]
-    )
-    if outcome == "accepted":
-        ok("Client ID Metadata Document clients reach sign-in")
-    else:
-        # The repo cannot fix this, so it does not block a merge unless --strict.
-        warn(f"Client ID Metadata Documents are advertised but a known-good document is not accepted ({detail})")
+    # Exercise the port-bearing redirect sent by a native client. No listener is
+    # required because this probe never signs in or follows a callback.
+    native_port = 49152 + secrets.randbelow(16384)
+    for label, client, callback, scopes in (
+        ("Codex desktop", CODEX_CLIENT, f"http://127.0.0.1:{native_port}/callback", OPENAI_RECONNECT_SCOPES),
+        ("ChatGPT web", CHATGPT_CLIENT, "https://chatgpt.com/connector_platform_oauth_redirect", OPENAI_RECONNECT_SCOPES),
+        ("VS Code", "https://vscode.dev/oauth/client-metadata.json", "http://127.0.0.1:33418/", ("user:org:read", "offline_access")),
+    ):
+        outcome, detail = authorize_outcome(metadata["authorization_endpoint"], client, callback, list(scopes))
+        if outcome == "accepted":
+            ok(f"{label} reaches RoboWrite sign-in")
+        else:
+            warn(f"{label} did not reach RoboWrite sign-in ({detail})")
 
 
 def main() -> int:
