@@ -751,6 +751,602 @@
           "idempotentHint": true,
           "title": "Switch the intended workspace"
         }
+      },
+      {
+        "name": "list_brands",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            },
+            "limit": {
+              "default": 100,
+              "description": "Results per page",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "description": "Pagination offset",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "title": "List workspace brands",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
+      },
+      {
+        "name": "list_content",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            },
+            "brand_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand Id"
+            },
+            "property_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property Id"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "description": "Workflow status of content tasks.",
+                  "enum": [
+                    "planned",
+                    "ready",
+                    "generating",
+                    "draft",
+                    "in_review",
+                    "approved",
+                    "published",
+                    "cancelled"
+                  ],
+                  "title": "TaskStatus",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "format": {
+              "anyOf": [
+                {
+                  "description": "Output format for content generation.",
+                  "enum": [
+                    "blog_post",
+                    "landing_page",
+                    "linkedin_post",
+                    "linkedin_article",
+                    "twitter_post",
+                    "twitter_thread",
+                    "newsletter",
+                    "video_script",
+                    "podcast_outline",
+                    "case_study",
+                    "whitepaper",
+                    "ebook",
+                    "infographic",
+                    "webinar",
+                    "email_sequence"
+                  ],
+                  "title": "ContentFormat",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            },
+            "pillar_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pillar Id"
+            },
+            "created_from": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            },
+            "created_before": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created Before"
+            },
+            "q": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            },
+            "keyword": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            },
+            "content_type": {
+              "anyOf": [
+                {
+                  "description": "Output format for content generation.",
+                  "enum": [
+                    "blog_post",
+                    "landing_page",
+                    "linkedin_post",
+                    "linkedin_article",
+                    "twitter_post",
+                    "twitter_thread",
+                    "newsletter",
+                    "video_script",
+                    "podcast_outline",
+                    "case_study",
+                    "whitepaper",
+                    "ebook",
+                    "infographic",
+                    "webinar",
+                    "email_sequence"
+                  ],
+                  "title": "ContentFormat",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Type"
+            },
+            "brief_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brief Id"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "title": "Find saved content and drafts",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
+      },
+      {
+        "name": "list_briefs",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            },
+            "brand_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand Id"
+            },
+            "property_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property Id"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "description": "Workflow status of content tasks.",
+                  "enum": [
+                    "planned",
+                    "ready",
+                    "generating",
+                    "draft",
+                    "in_review",
+                    "approved",
+                    "published",
+                    "cancelled"
+                  ],
+                  "title": "TaskStatus",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "format": {
+              "anyOf": [
+                {
+                  "description": "Output format for content generation.",
+                  "enum": [
+                    "blog_post",
+                    "landing_page",
+                    "linkedin_post",
+                    "linkedin_article",
+                    "twitter_post",
+                    "twitter_thread",
+                    "newsletter",
+                    "video_script",
+                    "podcast_outline",
+                    "case_study",
+                    "whitepaper",
+                    "ebook",
+                    "infographic",
+                    "webinar",
+                    "email_sequence"
+                  ],
+                  "title": "ContentFormat",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            },
+            "pillar_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pillar Id"
+            },
+            "created_from": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            },
+            "created_before": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created Before"
+            },
+            "q": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            },
+            "keyword": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "title": "Find saved content briefs",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
+      },
+      {
+        "name": "list_jobs",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            },
+            "job_type": {
+              "anyOf": [
+                {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact stored job-type name, including retired types. Must not be blank.",
+              "title": "Job Type"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "description": "Status of a background job.\n\nTerminal states: ``completed``, ``completed_with_errors``, ``failed``,\n``cancelled``. Active (in-progress) states: ``queued``, ``running``.\n\n``awaiting_review`` is a third class: not terminal (work may resume after a\nhuman action) and not active (no automatic progress is being made). Pollers\nshould treat it as stop-and-review rather than keep waiting for a terminal\nstatus. It is intentionally in neither ``is_terminal`` nor ``is_active``.",
+                  "enum": [
+                    "pending",
+                    "queued",
+                    "running",
+                    "awaiting_review",
+                    "completed",
+                    "completed_with_errors",
+                    "failed",
+                    "cancelled"
+                  ],
+                  "title": "JobStatus",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "created_from": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            },
+            "created_before": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created Before"
+            },
+            "brand_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand Id"
+            },
+            "property_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property Id"
+            },
+            "brief_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brief Id"
+            },
+            "content_item_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Item Id"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "title": "Find content jobs",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
+      },
+      {
+        "name": "read_draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_item_id": {
+              "format": "uuid",
+              "title": "Content Item Id",
+              "type": "string"
+            },
+            "organization_id": {
+              "pattern": "^org_[A-Za-z0-9_]+$",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content_item_id"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "title": "Read the latest saved draft",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
       }
     ]
   }

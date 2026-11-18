@@ -54,12 +54,27 @@ EDITORIAL_BODY_UUIDS = {
 }
 EDITORIAL_READ_IDS = {
     "get_account": (),
+    "list_brands": (),
+    "list_content": (),
+    "list_briefs": (),
+    "list_jobs": (),
+    "read_draft": ("content_item_id",),
     "get_content": ("content_item_id",),
     "get_job": ("job_id",),
     "list_draft_sections": ("content_item_id", "content_version_id"),
     "get_review_card": ("content_item_id",),
     "list_reviews": (),
     "get_review": ("review_id",),
+}
+# Search arguments used to recover existing work before any write or retry.
+CONTENT_SEARCH_FIELDS = (
+    "brand_id", "property_id", "status", "format", "pillar_id", "keyword",
+    "created_from", "created_before", "q",
+)
+RECOVERY_SEARCH_FIELDS = {
+    "list_content": (*CONTENT_SEARCH_FIELDS, "brief_id", "content_type"),
+    "list_briefs": CONTENT_SEARCH_FIELDS,
+    "list_jobs": ("brand_id", "content_item_id", "created_from", "created_before"),
 }
 # New packaged connections require these live read-only operations before use.
 WORKSPACE_READ_IDS = {
@@ -280,9 +295,11 @@ def editorial_catalog_errors(tools: list) -> list[str]:
             required_only(schema, set(keys), name)
             if name == "get_content":
                 optional_value(schema, "version", "integer", name, nullable=True)
-            elif name in ("list_reviews", "list_organizations"):
+            if name in ("list_reviews", "list_organizations", "list_brands") or name in RECOVERY_SEARCH_FIELDS:
                 for key in ("offset", "limit"):
                     optional_value(schema, key, "integer", name)
+            for key in RECOVERY_SEARCH_FIELDS.get(name, ()):
+                optional_value(schema, key, "string", name)
             continue
         root_fields = {"body"}
         if name != "request_review":
