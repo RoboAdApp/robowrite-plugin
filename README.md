@@ -52,6 +52,8 @@ Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-setup` to check 
 
 To receive new skills and plugin fixes automatically, open `/plugin` → **Marketplaces** → **robowrite-plugins** → **Enable auto-update**. Start a new session or run `/reload-plugins` when Claude Code reports an update. If you installed through Anthropic’s directory, use that listing for updates to your existing installation. [Claude Code installation and update guide](https://code.claude.com/docs/en/discover-plugins)
 
+If you previously tested with `--plugin-dir`, start your next Claude Code session without that flag to use the installed copy.
+
 To try a local checkout before release, run this command from the plugin directory:
 
 ```sh

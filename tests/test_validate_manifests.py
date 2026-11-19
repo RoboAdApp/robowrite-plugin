@@ -123,7 +123,7 @@ class CurrentRepoContract(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(f"OK {len(vm.JSON_FILES)} manifests valid", result.stdout)
+        self.assertIn("OK 13 manifests valid", result.stdout)
 
     def test_matching_tag_passes_and_wrong_tag_fails(self) -> None:
         vm.errors.clear()
