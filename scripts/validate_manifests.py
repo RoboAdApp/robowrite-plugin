@@ -142,6 +142,7 @@ JSON_FILES = VERSIONED + [
     "mcp.codex.json",
     "mcp.grok.json",
     ".agents/plugins/marketplace.json",
+    ".claude-plugin/marketplace.json",
 ]
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")

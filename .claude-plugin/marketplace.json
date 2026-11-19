@@ -1,0 +1,16 @@
+{
+	"name": "robowrite-plugins",
+	"owner": {
+		"name": "M Powered Ventures"
+	},
+	"metadata": {
+		"description": "RoboWrite plugins for content research and editorial work."
+	},
+	"plugins": [
+		{
+			"name": "robowrite",
+			"source": "./",
+			"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge."
+		}
+	]
+}

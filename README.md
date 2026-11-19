@@ -42,7 +42,17 @@ The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server 
 
 You need a RoboWrite account, the intended organization, and available allowance for requested content generation. Generation starts real work, consumes allowance, and may incur usage charges when your account permits overages. Start with account discovery before requesting a draft.
 
-For Claude Code, from this plugin directory:
+In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher after the 0.3.0 release reaches this repository’s default branch:
+
+```text
+/plugin install robowrite --marketplace RoboAdApp/robowrite-plugin
+```
+
+Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-setup` to check the connected workspace. Use `/robowrite:robowrite-content-ops` to find a brief or resume a saved draft.
+
+To receive new skills and plugin fixes automatically, open `/plugin` → **Marketplaces** → **robowrite-plugins** → **Enable auto-update**. Start a new session or run `/reload-plugins` when Claude Code reports an update. If you installed through Anthropic’s directory, use that listing for updates to your existing installation. [Claude Code installation and update guide](https://code.claude.com/docs/en/discover-plugins)
+
+To try a local checkout before release, run this command from the plugin directory:
 
 ```sh
 claude --plugin-dir .

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import importlib.util
 import subprocess
 import sys
@@ -103,6 +104,16 @@ class RejectCredentialKeys(unittest.TestCase):
 
 
 class CurrentRepoContract(unittest.TestCase):
+    def test_claude_marketplace_installs_the_versioned_root_plugin(self) -> None:
+        catalog_dir = ROOT / ".claude-plugin"
+        plugin = json.loads((catalog_dir / "plugin.json").read_text())
+        marketplace = json.loads((catalog_dir / "marketplace.json").read_text())
+        entries = [entry for entry in marketplace["plugins"] if entry["name"] == plugin["name"]]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["source"], "./")
+        self.assertEqual(entries[0]["description"], plugin["description"])
+        self.assertNotIn("version", entries[0])
+
     def test_shipped_manifests_pass(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SCRIPT)],
@@ -112,7 +123,7 @@ class CurrentRepoContract(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("OK 12 manifests valid", result.stdout)
+        self.assertIn(f"OK {len(vm.JSON_FILES)} manifests valid", result.stdout)
 
     def test_matching_tag_passes_and_wrong_tag_fails(self) -> None:
         vm.errors.clear()
