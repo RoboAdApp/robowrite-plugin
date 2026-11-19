@@ -114,7 +114,7 @@
 				}
 			},
 			"publication": {
-				"release_notes": "Ask “Which RoboWrite workspace am I using?” to check your connection. With multi-workspace access, you can switch in chat, then find a brief or reopen a saved Markdown draft in the workspace you chose. Existing single-workspace connections keep their original access. For a manual connection using the previous server address, add https://mcp.robowrite.ai/mcp in your client and sign in again."
+				"release_notes": "Ask “Which RoboWrite workspace am I using?” to check your connection. With multi-workspace access, you can switch in chat, then find a brief or reopen a saved Markdown draft in the workspace you chose. Existing single-workspace connections keep their original access. If you enable multi-workspace access, you may be asked to approve the additional permissions. If you set up RoboWrite manually with the old server address, edit that connection to use https://mcp.robowrite.ai/mcp and sign in again. If your client can’t edit the address, replace the old entry with one using the new address."
 			}
 		}
 	}
