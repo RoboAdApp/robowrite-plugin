@@ -79,7 +79,7 @@
 							"description": "Recover a saved Markdown draft in the RoboWrite sidebar",
 							"prompt": "Open my RoboWrite workspace in ChatGPT so I can choose a brand and review a saved Markdown draft. Keep this read-only.",
 							"tools_triggered": "open_workspace, get_account, list_brands, list_content, get_content, get_review_card. If a workspace must be selected, use list_organizations, get_organization_access and switch_organization.",
-							"expected_behavior": "The RoboWrite sidebar opens inside ChatGPT. If workspace selection is required, it waits for a choice before loading brands. Selecting a brand and draft shows that item's saved Markdown and version, or indicates that a saved version is missing. Only checks for the displayed version can appear as current. Opening the draft makes no content changes and starts no generation."
+							"expected_behavior": "The RoboWrite sidebar opens inside ChatGPT. If a workspace choice is required, the sidebar waits for it. It verifies the connected account before loading brands and keeps later reads in that workspace. Selecting a brand and draft shows that item's saved Markdown and version, or indicates that a saved version is missing. A review check from another version is never marked current. Opening the draft makes no content changes and starts no generation."
 						},
 						{
 							"description": "Read an existing brief",
