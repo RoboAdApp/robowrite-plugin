@@ -216,3 +216,14 @@ The files in this plugin repository are licensed under the [MIT license](LICENSE
 Privacy: [RoboWrite privacy policy](https://www.robowrite.ai/privacy).
 
 Support: [RoboWrite contact](https://www.robowrite.ai/contact), [hello@robowrite.ai](mailto:hello@robowrite.ai). Field details: [API reference](https://www.robowrite.ai/api/reference) and [integration guide](https://www.robowrite.ai/llms-full.txt).
+
+### Prepare the Claude Directory source for review
+
+From a committed revision of this repository, run
+`python3 scripts/claude_directory_tree.py HEAD`. The command returns a Git tree
+containing the Claude manifest, hosted connection, PNG icon, license, directory
+README and tracked skills with their supporting files. Inspect the result with
+`git ls-tree -r <tree-id>` or export it with `git archive <tree-id>`. The command
+creates no release, branch or tag. Validate the exported directory with
+`claude plugin validate --strict --profile directory <directory>` before
+requesting Anthropic's source validation.
