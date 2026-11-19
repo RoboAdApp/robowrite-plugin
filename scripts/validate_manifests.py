@@ -38,6 +38,7 @@ STATIC_SCOPE_PATHS = {
 }
 
 REGISTRY_NAME = "ai.robowrite/mcp"
+OPENAI_MCP_FILE = "mcp.codex.json"
 OPENAI_APP_ID = "asdk_app_6af5d3adb07c8191b49b773cc82b6c7c"
 REGISTRY_DESCRIPTION_MAX = 100
 OPENAI_TEXT_LIMITS = {
@@ -139,7 +140,7 @@ JSON_FILES = VERSIONED + [
     "preview/openai-app.json",
     ".mcp.json",
     "mcp.json",
-    "mcp.codex.json",
+    OPENAI_MCP_FILE,
     "mcp.grok.json",
     ".agents/plugins/marketplace.json",
 ]
@@ -215,6 +216,14 @@ def check_connection_scopes(relative: str, manifest: dict) -> None:
 
 def check_references(relative: str, manifest: dict) -> None:
     """Relative paths named by a plugin manifest must exist."""
+    if relative == ".claude-plugin/plugin.json":
+        value = manifest.get("icon")
+        icon = Path(value) if isinstance(value, str) else None
+        if (
+            icon is None or icon.parent != Path("assets") or icon.suffix.lower() != ".png"
+            or (ROOT / "assets").is_symlink() or (ROOT / icon).is_symlink() or not (ROOT / icon).is_file()
+        ):
+            fail(f"{relative}: icon must reference an included PNG file in assets/")
     references = [(key, manifest.get(key)) for key in ("mcpServers", "apps", "logo", "skills")]
     interface = manifest.get("interface")
     if isinstance(interface, dict):
@@ -229,7 +238,9 @@ def check_references(relative: str, manifest: dict) -> None:
 
 
 def check_openai_registered_app(manifest: dict, registered: dict | None) -> None:
-    """Keep app references preview-only and pin their publisher-owned identity."""
+    """Validate the direct submission connection and the registered preview mapping."""
+    if manifest.get("mcpServers") != f"./{OPENAI_MCP_FILE}":
+        fail(f".codex-plugin/plugin.json: mcpServers must reference ./{OPENAI_MCP_FILE}")
     extensions = manifest.get("extensions")
     extension = extensions.get("com.openai") if isinstance(extensions, dict) else None
     if "apps" in manifest or (isinstance(extension, dict) and "apps" in extension):

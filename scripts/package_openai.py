@@ -14,7 +14,7 @@ import validate_manifests as vm
 
 PACKAGE_FILES = (
     ".codex-plugin/plugin.json", "LICENSE", "README.md",
-    "assets/robowrite-r.png", "assets/robowrite-r.svg", "mcp.codex.json",
+    "assets/robowrite-r.png", "assets/robowrite-r.svg", vm.OPENAI_MCP_FILE,
     "skills/robowrite-content-ops/SKILL.md", "skills/robowrite-setup/SKILL.md",
 )
 
@@ -48,7 +48,7 @@ def main() -> None:
         # The browser preview uses the registered connection without also
         # creating a second direct MCP server with a separate login.
         manifest["apps"] = "./.app.json"
-        manifest.pop("mcpServers", None)
+        del manifest["mcpServers"]
         # Review cases belong to the URL-based public submission. The local
         # importer rejects plugin-level MCP cases when only an app is mapped.
         extension = manifest.get("extensions", {}).get("com.openai", {})
