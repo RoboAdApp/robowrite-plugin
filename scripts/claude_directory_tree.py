@@ -33,7 +33,7 @@ def build_tree(repo: Path, revision: str) -> str:
         header, name = record.split(b"\t", 1)
         mode, kind, oid = header.split()
         if mode != b"100644" or kind != b"blob":
-            raise ValueError(f"Unexpected file mode or type for {os.fsdecode(name)}")
+            raise ValueError(f"Claude package files must be regular, non-executable files: {os.fsdecode(name)}")
         paths.add(os.fsdecode(name))
         target = b"README.md" if name == LISTING_README.encode() else name
         entries.append(mode + b" " + oid + b"\t" + target + b"\0")
@@ -41,7 +41,8 @@ def build_tree(repo: Path, revision: str) -> str:
     missing = required - paths
     if missing:
         raise ValueError("Missing Claude package files: " + ", ".join(sorted(missing)))
-    if not any(Path(name).match("skills/*/SKILL.md") for name in paths):
+    if not any(name.startswith("skills/") and len(Path(name).parts) == 3
+               and Path(name).name == "SKILL.md" for name in paths):
         raise ValueError("Missing Claude skill definitions")
 
     with tempfile.TemporaryDirectory() as temp:

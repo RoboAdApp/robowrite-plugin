@@ -4,7 +4,7 @@ Use RoboWrite to plan articles from keyword research and competitor insights, re
 
 ## Connect your workspace
 
-1. Open **Plugins** in Claude, find **RoboWrite** in the Anthropic Directory, and select **Add**. Check the version and skills on the listing. Version 0.3.0 includes a setup skill and a content workflow skill.
+1. Open **Plugins** in Claude, find **RoboWrite** in the Anthropic Directory, and select **Add**. Check the version and skills shown on the listing before connecting.
 2. Connect RoboWrite and sign in or create your RoboWrite account in the browser. Review the permissions on the consent screen. If you connect from Claude Code, open its MCP menu to start sign-in.
 3. Ask **“Which RoboWrite workspace am I using?”** If Claude offers eligible workspaces, choose one by name. Claude checks that account before opening your content. With multi-workspace access, you can ask to switch in chat. Existing single-workspace grants keep their original access.
 
