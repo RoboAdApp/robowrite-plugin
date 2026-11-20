@@ -8,6 +8,7 @@ import importlib.util
 import json
 import unittest
 import urllib.error
+import urllib.parse
 from pathlib import Path
 from unittest import mock
 
@@ -75,7 +76,7 @@ class FetchTransport(unittest.TestCase):
             sm.check_static_clients("https://clerk.robowrite.ai/oauth/authorize")
         self.assertTrue(sm.failures, sm.failures)
         self.assertTrue(
-            any("gemini-extension.json" in message and "dns failed" in message for message in sm.failures),
+            any("gemini-extension.json" in message and "could not reach" in message for message in sm.failures),
             sm.failures,
         )
 
@@ -89,6 +90,51 @@ class FetchTransport(unittest.TestCase):
             )
         self.assertEqual(sm.failures, [])
         self.assertTrue(sm.warnings, sm.warnings)
+
+    def test_openai_clients_report_independent_preconsent_results(self) -> None:
+        seen = {}
+        endpoint = "https://clerk.robowrite.ai/oauth/authorize"
+
+        def issuer_response(url):
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+            client = query["client_id"][0]
+            seen[client] = query
+            if client == sm.CODEX_CLIENT:
+                return 401, {}, '{"error":"invalid_client","error_description":"private diagnostic"}'
+            return 302, {"Location": sm.SIGN_IN_URL + "?state=private"}, ""
+
+        with mock.patch.object(sm, "fetch", side_effect=issuer_response):
+            sm.check_metadata_document_clients({
+                "client_id_metadata_document_supported": True, "authorization_endpoint": endpoint,
+            })
+        self.assertEqual(sm.warnings, ["Codex desktop did not reach RoboWrite sign-in (invalid_client)"])
+        native = seen[sm.CODEX_CLIENT]
+        self.assertRegex(native["redirect_uri"][0], r"^http://127\.0\.0\.1:[0-9]+/callback$")
+        self.assertEqual(native["resource"], [sm.MCP_URL])
+        self.assertEqual(native["code_challenge_method"], ["S256"])
+        web = seen[sm.CHATGPT_CLIENT]
+        self.assertEqual(web["redirect_uri"], ["https://chatgpt.com/connector_platform_oauth_redirect"])
+        self.assertEqual(native["scope"], web["scope"])
+        self.assertNotEqual(native["state"], web["state"])
+        self.assertNotEqual(native["code_challenge"], web["code_challenge"])
+
+    def test_only_the_hosted_sign_in_handoff_is_accepted(self) -> None:
+        endpoint = "https://clerk.robowrite.ai/oauth/authorize"
+        for target, expected in (
+            (sm.SIGN_IN_URL + "?return_to=private", "accepted"),
+            (sm.SIGN_IN_URL + "?error=access_denied", "rejected"),
+            ("http://127.0.0.1:53123/callback#error=invalid_client", "rejected"),
+            ("http://127.0.0.1:53123/callback?code=private", "inconclusive"),
+            ("https://accounts.robowrite.ai/error?state=private", "inconclusive"),
+            ("https://example.com/sign-in?state=private", "inconclusive"),
+        ):
+            hops = [(302, {"Location": "/oauth/authorize/continue?state=private"}, ""),
+                    (302, {"Location": target}, "")]
+            with self.subTest(target=target), mock.patch.object(sm, "fetch", side_effect=hops) as fetch:
+                outcome, detail = sm.authorize_outcome(endpoint, sm.CODEX_CLIENT, "http://127.0.0.1/callback", [])
+                self.assertEqual(fetch.call_count, 2)
+                self.assertEqual(outcome, expected)
+                self.assertNotIn("private", detail)
 
     def test_unsigned_initialize_401_is_a_failure(self) -> None:
         def fake_fetch(url, *, data=None, headers=None):
