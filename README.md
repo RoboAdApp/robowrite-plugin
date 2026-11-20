@@ -6,7 +6,7 @@ Bring target keywords, competitor pages, source URLs, and knowledge-library docu
 
 Read the [RoboWrite MCP installation and usage manual](https://www.robowrite.ai/guides/robowrite-mcp) for the server URL, browser OAuth, client setup, first-task examples, and troubleshooting.
 
-Version 0.3.0 migrates all clients to `https://mcp.robowrite.ai/mcp` with exact resource-audience OAuth validation. Reconnect after updating; tokens for the old URL or without an audience are rejected. This held candidate also adds separately consented multi-workspace access. The reviewed API/host deployment, provider consent, and native ChatGPT/Claude/Cursor selection, cancellation, return, update and reconnect acceptance must pass, and the public setup manual must be deployed, before this version is merged or released. Merging starts the release workflow; new MCP Registry publication waits for required owner approval on the protected `mcp-registry` environment. A merge is not publication approval, and it still updates the public Git source used by direct repository installs.
+Version 0.3.1 migrates all clients to `https://mcp.robowrite.ai/mcp` with exact resource-audience OAuth validation. Reconnect after updating; tokens for the old URL or without an audience are rejected. This held candidate also adds separately consented multi-workspace access. The reviewed API/host deployment, provider consent, and native ChatGPT/Claude/Cursor selection, cancellation, return, update and reconnect acceptance must pass, and the public setup manual must be deployed, before this version is merged or released. Merging starts the release workflow; new MCP Registry publication waits for required owner approval on the protected `mcp-registry` environment. A merge is not publication approval, and it still updates the public Git source used by direct repository installs.
 
 The verification receipts below are historical, from the previous endpoint; they do not establish acceptance at the new URL. Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
@@ -20,7 +20,7 @@ This repository contains the client formats below. A platform-specific submissio
 - OpenAI/Codex submission metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`. A separate local preview mapping in `preview/openai-app.json` uses the M Powered Ventures registered app, not a personal acceptance-test connection. OpenAI's publishing portal rejects `.app.json` references in submission packages; keep that mapping in preview packages only. Complete browser and desktop tool/skill authentication still needs native acceptance.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
-- Shared [content workflow](skills/robowrite-content-ops/SKILL.md) and [account-first setup](skills/robowrite-setup/SKILL.md) skills.
+- Start with [first-time onboarding](skills/robowrite-onboarding/SKILL.md) to choose a workspace, set up a brand, and find a first task. The [connection setup](skills/robowrite-setup/SKILL.md) and [content workflow](skills/robowrite-content-ops/SKILL.md) skills cover reconnecting and ongoing editorial work.
 - The RoboWrite product mark and [MIT license](LICENSE).
 
 The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server to build or npm package to install.
@@ -42,13 +42,13 @@ The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server 
 
 You need a RoboWrite account, the intended organization, and available allowance for requested content generation. Generation starts real work, consumes allowance, and may incur usage charges when your account permits overages. Start with account discovery before requesting a draft.
 
-In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher after the 0.3.0 release reaches this repository’s default branch:
+In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher after the 0.3.1 release reaches this repository’s default branch:
 
 ```text
 /plugin install robowrite --marketplace RoboAdApp/robowrite-plugin
 ```
 
-Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-setup` to check the connected workspace. Use `/robowrite:robowrite-content-ops` to find a brief or resume a saved draft.
+Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-onboarding` for first-time brand setup, or `/robowrite:robowrite-setup` to check an existing connection. Use `/robowrite:robowrite-content-ops` to find a brief or resume a saved draft.
 
 To receive new skills and plugin fixes automatically, open `/plugin` → **Marketplaces** → **robowrite-plugins** → **Enable auto-update**. Start a new session or run `/reload-plugins` when Claude Code reports an update. If you installed through Anthropic’s directory, use that listing for updates to your existing installation. [Claude Code installation and update guide](https://code.claude.com/docs/en/discover-plugins)
 
@@ -76,9 +76,9 @@ The previously verified Cursor project setup is also available: merge the `robow
 
 **Grok Build.** From the RoboWrite plugin directory, run `grok plugin install .` and inspect the trust prompt. If you recognize the source and want to install it, run `grok plugin install --trust .`.
 
-Run `grok inspect --json` in the project where you use Grok. Look for the two skills, `robowrite-setup` and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the URL through `mcp.grok.json` and lets Grok discover the OAuth settings.
+Run `grok inspect --json` in the project where you use Grok. Look for the three skills, `robowrite-onboarding`, `robowrite-setup`, and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the URL through `mcp.grok.json` and lets Grok discover the OAuth settings.
 
-**Upgrading an existing connection.** A manual server named `robowrite` can take precedence even when both plugin skills are installed. If the target ends in the retired `/api/mcp` path, run `grok mcp list --json` to see whether the manual entry has user or project scope. For user scope, open `~/.grok/config.toml`. For project scope, open `.grok/config.toml` in that project. Change only the `url` to `https://mcp.robowrite.ai/mcp`, preserving your other settings. Run `grok inspect --json` again to confirm the active address.
+**Upgrading an existing connection.** A manual server named `robowrite` can take precedence even when the plugin skills are installed. If the target ends in the retired `/api/mcp` path, run `grok mcp list --json` to see whether the manual entry has user or project scope. For user scope, open `~/.grok/config.toml`. For project scope, open `.grok/config.toml` in that project. Change only the `url` to `https://mcp.robowrite.ai/mcp`, preserving your other settings. Run `grok inspect --json` again to confirm the active address.
 
 In Grok Build, open `/mcps`, select RoboWrite and press `i` to start browser sign-in. After returning to Grok, ask it to check your RoboWrite account. If workspace selection is required, ask it to list your eligible workspaces, select one, and repeat the account check. Native RoboWrite sign-in and reconnect are still under test. [Grok Build MCP controls](https://docs.x.ai/build/features/mcp-servers) · [RoboWrite setup and usage guide](https://www.robowrite.ai/guides/robowrite-mcp)
 

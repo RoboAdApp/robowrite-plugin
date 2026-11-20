@@ -17,7 +17,7 @@ class OpenAIPackageBoundary(unittest.TestCase):
             target = Path(temporary) / "submission.zip"
             for option, value in (
                 ("--preview-app-id", "asdk_app_00000000000000000000000000000001"),
-                ("--preview-version", "0.3.1"),
+                ("--preview-version", "9.8.7"),
             ):
                 result = subprocess.run(
                     [sys.executable, str(ROOT / "scripts/package_openai.py"),
@@ -35,13 +35,13 @@ class OpenAIPackageBoundary(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(ROOT / "scripts/package_openai.py"),
                  "--mode", "preview", "--preview-app-id", app_id,
-                 "--preview-version", "0.3.1", str(target)],
+                 "--preview-version", "9.8.7", str(target)],
                 capture_output=True, text=True, check=False,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             with zipfile.ZipFile(target) as archive:
                 manifest = json.loads(archive.read(".codex-plugin/plugin.json"))
-                self.assertEqual(manifest["version"], "0.3.1")
+                self.assertEqual(manifest["version"], "9.8.7")
                 self.assertEqual(json.loads(archive.read(".app.json"))["apps"]["robowrite"]["id"], app_id)
                 for name in archive.namelist():
                     if name not in {".codex-plugin/plugin.json", ".app.json"}:
@@ -77,6 +77,10 @@ class OpenAIPackageBoundary(unittest.TestCase):
             for name in submission.keys() - {".codex-plugin/plugin.json"}:
                 self.assertEqual(submission[name], preview[name], name)
                 self.assertEqual(submission[name], (ROOT / name).read_bytes(), name)
+            for files, manifest in ((submission, release_manifest), (preview, preview_manifest)):
+                entry = manifest["extensions"]["com.openai"]["onboardingSkill"].removeprefix("./")
+                self.assertEqual(entry, "skills/robowrite-onboarding/SKILL.md")
+                self.assertEqual(files[entry], (ROOT / entry).read_bytes())
             expected = json.loads((ROOT / "preview/openai-app.json").read_text())
             self.assertEqual(json.loads(preview[".app.json"]), expected)
 
