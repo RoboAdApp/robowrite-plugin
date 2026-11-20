@@ -206,6 +206,17 @@ The submission archive declares the hosted MCP URL and includes the public revie
 
 An unpublished publishing draft may be unavailable as a consumer connector. For an explicitly authorized private test connection, add `--preview-app-id asdk_app_...` (the raw ID without the URL's `plugin_` prefix). Use `--preview-version X.Y.Z` when updating a previously imported private preview; its installer requires a new version. These overrides apply only to the local preview and are rejected in submission mode. They never modify the canonical manifest, scopes or submission version. Confirm the private connection uses the intended endpoint, reviewer and workspace before authorizing it; a different ID is not a way to inherit another connection's permission.
 
+## Prepare the Claude Directory source for review
+
+From a committed revision of this repository, run
+`python3 scripts/claude_directory_tree.py HEAD`. The command returns a Git tree
+containing the Claude manifest, hosted connection, PNG icon, license, directory
+README and tracked skills with their supporting files. Inspect the result with
+`git ls-tree -r <tree-id>` or export it with `git archive <tree-id>`. Rerunning the command for
+the same commit regenerates the same tree. Validate the exported directory with
+`claude plugin validate --strict --profile directory <directory>` before
+requesting Anthropic's source validation.
+
 ## Releasing
 
 CI validates every manifest on each pull request: JSON structure, OpenAI listing metadata (supported categories, single-line fields, normalized unique starter prompts) and included icon references, one shared version across `server.json`, the four `plugin.json` files, and `gemini-extension.json`, the hosted MCP URL, and `server.json` against the registry schema. Run the same check locally with `python3 scripts/validate_manifests.py`.
