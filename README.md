@@ -20,7 +20,7 @@ This repository contains the client formats below. A platform-specific submissio
 - OpenAI/Codex submission metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`. A separate local preview mapping in `preview/openai-app.json` uses the M Powered Ventures registered app, not a personal acceptance-test connection. OpenAI's publishing portal rejects `.app.json` references in submission packages; keep that mapping in preview packages only. Complete browser and desktop tool/skill authentication still needs native acceptance.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
 - Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
-- Shared [content workflow](skills/robowrite-content-ops/SKILL.md) and [account-first setup](skills/robowrite-setup/SKILL.md) skills.
+- Start with [first-time onboarding](skills/robowrite-onboarding/SKILL.md) to choose a workspace, set up a brand, and find a first task. The [connection setup](skills/robowrite-setup/SKILL.md) and [content workflow](skills/robowrite-content-ops/SKILL.md) skills cover reconnecting and ongoing editorial work.
 - The RoboWrite product mark and [MIT license](LICENSE).
 
 The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server to build or npm package to install.
@@ -48,7 +48,7 @@ In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher after 
 /plugin install robowrite --marketplace RoboAdApp/robowrite-plugin
 ```
 
-Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-setup` to check the connected workspace. Use `/robowrite:robowrite-content-ops` to find a brief or resume a saved draft.
+Open `/mcp` and sign in to RoboWrite. Run `/robowrite:robowrite-onboarding` for first-time brand setup, or `/robowrite:robowrite-setup` to check an existing connection. Use `/robowrite:robowrite-content-ops` to find a brief or resume a saved draft.
 
 To receive new skills and plugin fixes automatically, open `/plugin` → **Marketplaces** → **robowrite-plugins** → **Enable auto-update**. Start a new session or run `/reload-plugins` when Claude Code reports an update. If you installed through Anthropic’s directory, use that listing for updates to your existing installation. [Claude Code installation and update guide](https://code.claude.com/docs/en/discover-plugins)
 
@@ -76,7 +76,7 @@ The previously verified Cursor project setup is also available: merge the `robow
 
 **Grok Build.** From the RoboWrite plugin directory, run `grok plugin install .` and inspect the trust prompt. If you recognize the source and want to install it, run `grok plugin install --trust .`.
 
-Run `grok inspect --json` in the project where you use Grok. Look for the two skills, `robowrite-setup` and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the URL through `mcp.grok.json` and lets Grok discover the OAuth settings.
+Run `grok inspect --json` in the project where you use Grok. Look for the three skills, `robowrite-onboarding`, `robowrite-setup`, and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the URL through `mcp.grok.json` and lets Grok discover the OAuth settings.
 
 **Upgrading an existing connection.** A manual server named `robowrite` can take precedence even when both plugin skills are installed. If the target ends in the retired `/api/mcp` path, run `grok mcp list --json` to see whether the manual entry has user or project scope. For user scope, open `~/.grok/config.toml`. For project scope, open `.grok/config.toml` in that project. Change only the `url` to `https://mcp.robowrite.ai/mcp`, preserving your other settings. Run `grok inspect --json` again to confirm the active address.
 

@@ -77,6 +77,10 @@ class OpenAIPackageBoundary(unittest.TestCase):
             for name in submission.keys() - {".codex-plugin/plugin.json"}:
                 self.assertEqual(submission[name], preview[name], name)
                 self.assertEqual(submission[name], (ROOT / name).read_bytes(), name)
+            for files, manifest in ((submission, release_manifest), (preview, preview_manifest)):
+                entry = manifest["extensions"]["com.openai"]["onboardingSkill"].removeprefix("./")
+                self.assertEqual(entry, "skills/robowrite-onboarding/SKILL.md")
+                self.assertEqual(files[entry], (ROOT / entry).read_bytes())
             expected = json.loads((ROOT / "preview/openai-app.json").read_text())
             self.assertEqual(json.loads(preview[".app.json"]), expected)
 

@@ -57,7 +57,7 @@
 	},
 	"extensions": {
 		"com.openai": {
-			"onboardingSkill": "./skills/robowrite-setup/SKILL.md",
+			"onboardingSkill": "./skills/robowrite-onboarding/SKILL.md",
 			"review": {
 				"commerce": false,
 				"commerce_description": "The MCP tools do not process purchases or payments. Generation uses the connected RoboWrite account's content allowance and can incur account overage charges when enabled.",
