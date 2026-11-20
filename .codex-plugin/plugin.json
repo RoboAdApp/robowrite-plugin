@@ -76,10 +76,10 @@
 							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call. Return the existing accessible brand and voice settings. Ask for a selection if more than one brand is available."
 						},
 						{
-							"description": "Recover a saved draft",
-							"prompt": "Find my saved Markdown drafts in RoboWrite and open the latest one for my selected brand. Do not generate anything.",
-							"tools_triggered": "get_account, list_brands, list_content, read_draft; when workspace selection is required: list_organizations, get_organization_access, switch_organization",
-							"expected_behavior": "Establish this chat's intended workspace and verify its account first; for a broad grant, ask the user to choose when needed and carry organization_id on every call. Recover that workspace's brand and item selections, then return saved Markdown, preserving item identity and reporting any missing saved version accurately."
+							"description": "Recover a saved Markdown draft in the RoboWrite sidebar",
+							"prompt": "Open my RoboWrite workspace in ChatGPT so I can select the sample checklist draft in the reviewer instructions. Show its saved Markdown and version in the sidebar. Keep this read-only.",
+							"tools_triggered": "open_workspace, get_account, list_brands, list_content, get_content, get_review_card. If a workspace must be selected, use list_organizations, get_organization_access and switch_organization.",
+							"expected_behavior": "The RoboWrite sidebar opens inside ChatGPT. If a workspace choice is required, the sidebar waits for it. It verifies the connected account before loading brands and keeps later reads in that workspace. To pass, the sidebar must display the sample draft’s title, the saved Markdown heading and the version number specified in the reviewer instructions. Only review checks for the displayed version may be marked current. Opening the draft makes no content changes and starts no generation."
 						},
 						{
 							"description": "Read an existing brief",
