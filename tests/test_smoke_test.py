@@ -237,13 +237,16 @@ class EditorialCatalogContract(unittest.TestCase):
                 self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
 
     def test_missing_tool_names_the_unavailable_operation(self) -> None:
-        for name in ("edit_draft", "list_organizations", "get_organization_access", "switch_organization"):
+        for name in (
+            "edit_draft", "list_organizations", "get_organization_access", "switch_organization",
+            "read_draft", "list_content", "list_briefs", "list_jobs", "list_brands",
+        ):
             with self.subTest(missing=name):
                 tools = [tool for tool in self.tools if tool["name"] != name]
                 self.assertIn(f"missing required tool {name}", sm.editorial_catalog_errors(tools))
 
-    def test_review_pagination_keeps_optional_integer_arguments(self) -> None:
-        for name in ("list_reviews", "list_organizations"):
+    def test_recovery_pagination_keeps_optional_integer_arguments(self) -> None:
+        for name in ("list_reviews", "list_organizations", "list_content", "list_briefs", "list_jobs", "list_brands"):
             for key in ("offset", "limit"):
                 for change in ("missing", "string", "required"):
                     with self.subTest(tool=name, key=key, change=change):
@@ -261,6 +264,18 @@ class EditorialCatalogContract(unittest.TestCase):
                     with self.subTest(tool=name, key=key, compatible=compatible):
                         self.tool(name)["inputSchema"]["properties"][key] = compatible
                         self.assertEqual(sm.editorial_catalog_errors(self.tools), [])
+
+    def test_recovery_filters_and_saved_draft_identity(self) -> None:
+        for name, key in (
+            ("list_content", "brief_id"), ("list_content", "q"),
+            ("list_briefs", "created_before"), ("list_jobs", "content_item_id"),
+            ("read_draft", "content_item_id"),
+        ):
+            with self.subTest(tool=name, field=key):
+                tools = copy.deepcopy(self.tools)
+                schema = next(tool["inputSchema"] for tool in tools if tool["name"] == name)
+                schema["properties"].pop(key)
+                self.assertTrue(any(f"{name}.{key}" in error for error in sm.editorial_catalog_errors(tools)))
 
     def test_workspace_targets_keep_documented_type_and_requiredness(self) -> None:
         """Keep broad targets valid without requiring them on pinned calls."""
