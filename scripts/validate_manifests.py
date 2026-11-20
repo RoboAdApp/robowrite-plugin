@@ -143,6 +143,7 @@ JSON_FILES = VERSIONED + [
     OPENAI_MCP_FILE,
     "mcp.grok.json",
     ".agents/plugins/marketplace.json",
+    ".claude-plugin/marketplace.json",
 ]
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
