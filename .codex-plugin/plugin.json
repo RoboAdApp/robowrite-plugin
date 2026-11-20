@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
@@ -114,7 +114,7 @@
 				}
 			},
 			"publication": {
-				"release_notes": "Ask “Which RoboWrite workspace am I using?” to check your connection. With multi-workspace access, you can switch in chat, then find a brief or reopen a saved Markdown draft in the workspace you chose. Existing single-workspace connections keep their original access. If you enable multi-workspace access, you may be asked to approve the additional permissions. If you set up RoboWrite manually with the old server address, edit that connection to use https://mcp.robowrite.ai/mcp and sign in again. If your client can’t edit the address, replace the old entry with one using the new address. Reconnecting can also prompt you to approve access to additional workspaces. Check the permissions shown and approve them only if they match the access you want."
+				"release_notes": "New to RoboWrite? Ask “Help me get started with my first brand” to use the onboarding skill. Ask “Which RoboWrite workspace am I using?” to check your connection. With multi-workspace access, you can switch in chat, then find a brief or reopen a saved Markdown draft in the workspace you chose. Existing single-workspace connections keep their original access. If you enable multi-workspace access, you may be asked to approve the additional permissions. If you set up RoboWrite manually with the old server address, edit that connection to use https://mcp.robowrite.ai/mcp and sign in again. If your client can’t edit the address, replace the old entry with one using the new address. Reconnecting can also prompt you to approve access to additional workspaces. Check the permissions shown and approve them only if they match the access you want."
 			}
 		}
 	}
