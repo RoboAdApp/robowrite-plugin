@@ -502,7 +502,9 @@ def static_clients() -> list[tuple[str, str, str, list[str]]]:
     )
 
     cursor = json.loads((ROOT / "mcp.json").read_text())["mcpServers"]["robowrite"]["auth"]
-    found.append(("mcp.json", cursor["CLIENT_ID"], "http://localhost:8787/callback", cursor["scopes"]))
+    # Cursor uses separate fixed return addresses for desktop and web/Agents.
+    for redirect_uri in ("http://localhost:8787/callback", "https://www.cursor.com/agents/mcp/oauth/callback"):
+        found.append(("mcp.json", cursor["CLIENT_ID"], redirect_uri, cursor["scopes"]))
 
     gemini = json.loads((ROOT / "gemini-extension.json").read_text())["mcpServers"]["robowrite"]["oauth"]
     found.append(("gemini-extension.json", gemini["clientId"], gemini["redirectUri"], gemini["scopes"]))

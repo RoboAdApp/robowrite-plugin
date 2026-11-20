@@ -80,6 +80,23 @@ class FetchTransport(unittest.TestCase):
             sm.failures,
         )
 
+    def test_cursor_desktop_and_web_redirect_rejections_each_fail_the_gate(self) -> None:
+        for rejected in ("http://localhost:8787/callback", "https://www.cursor.com/agents/mcp/oauth/callback"):
+            with self.subTest(rejected=rejected):
+                sm.failures.clear()
+
+                def issuer_response(url, **kwargs):
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+                    if query["redirect_uri"] == [rejected]:
+                        return 400, {}, '{"error":"invalid_request"}'
+                    return 302, {"Location": "https://accounts.robowrite.ai/sign-in"}, ""
+
+                with mock.patch.object(sm, "fetch", side_effect=issuer_response):
+                    sm.check_static_clients("https://clerk.robowrite.ai/oauth/authorize")
+                cursor_errors = [message for message in sm.failures if message.startswith("mcp.json:")]
+                self.assertEqual(len(cursor_errors), 1, cursor_errors)
+                self.assertIn(rejected, cursor_errors[0])
+
     def test_metadata_document_probe_stays_a_warning_on_transport(self) -> None:
         with mock.patch.object(sm, "fetch", return_value=(0, {}, "transport error: dns failed")):
             sm.check_metadata_document_clients(
