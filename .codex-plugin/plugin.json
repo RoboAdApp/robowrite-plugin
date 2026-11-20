@@ -114,7 +114,7 @@
 				}
 			},
 			"publication": {
-				"release_notes": "Release requires the documented native consent, workspace selection/cancel/return, update/reconnect and parallel-client acceptance gates to pass. This 0.3.0 candidate prepares canonical MCP access, explicit workspace context and saved-draft recovery. Existing valid pinned grants retain authority; endpoint migration or missing-consent reconnect may request combined discovery/content consent. Publication remains separate."
+				"release_notes": "Ask “Which RoboWrite workspace am I using?” to check your connection. With multi-workspace access, you can switch in chat, then find a brief or reopen a saved Markdown draft in the workspace you chose. Existing single-workspace connections keep their original access. If you enable multi-workspace access, you may be asked to approve the additional permissions. If you set up RoboWrite manually with the old server address, edit that connection to use https://mcp.robowrite.ai/mcp and sign in again. If your client can’t edit the address, replace the old entry with one using the new address. Reconnecting can also prompt you to approve access to additional workspaces. Check the permissions shown and approve them only if they match the access you want."
 			}
 		}
 	}
