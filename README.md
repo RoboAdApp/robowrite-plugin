@@ -15,7 +15,7 @@ Use the [hosted MCP endpoint](https://mcp.robowrite.ai/mcp) with Streamable HTTP
 | Cursor | [Set up Cursor](https://www.robowrite.ai/guides/robowrite-mcp#cursor) |
 | Grok Build | [Set up Grok Build](https://www.robowrite.ai/guides/robowrite-mcp#grok-build) |
 
-Already connected? Check the address on your existing RoboWrite entry. The retired entry uses host `www.robowrite.ai` and path `/api/mcp`. If both match, update the address using your client's migration steps in the guide. Sign in to RoboWrite and confirm the intended workspace before opening or changing content. Tools that start research or generation can use your allowance and incur charges when overages are enabled.
+Already connected? Check the address on your existing RoboWrite entry. The retired entry uses host `www.robowrite.ai` and path `/api/mcp`. That address returns HTTP 410 (Gone). If both match, edit the saved server URL in place where your client supports it, keep its OAuth settings, and reconnect. If your client requires a new entry, use its setup section below or in the guide. Sign in to RoboWrite and confirm the intended workspace before opening or changing content. Tools that start research or generation can use your allowance and incur charges when overages are enabled.
 
 Try this [first account check](https://www.robowrite.ai/guides/robowrite-mcp#first-task).
 
@@ -23,13 +23,13 @@ Try this [first account check](https://www.robowrite.ai/guides/robowrite-mcp#fir
 
 ### Other clients with remote MCP support
 
-For GitHub Copilot CLI, run the following command in the project where you will use RoboWrite, outside this 0.2.3 plugin checkout. Start Copilot in that same project. A trusted checkout's `.mcp.json` takes precedence over a user-level entry named `robowrite`. If your own project already defines that entry, update its URL there.
+For GitHub Copilot CLI, this command adds a user-level entry. Start Copilot in your own project outside the 0.2.3 plugin checkout. In a trusted project, an entry named `robowrite` in `.mcp.json` overrides the user entry. If your project defines one, edit its URL there. An unchanged 0.2.3 checkout will connect to the retired address.
 
 ```sh
 copilot mcp add --transport http robowrite https://mcp.robowrite.ai/mcp
 ```
 
-For Gemini CLI, open `.gemini/settings.json` in your own project. Under `mcpServers`, copy the `robowrite` entry from [the Gemini extension manifest](gemini-extension.json) and set its `httpUrl` to `https://mcp.robowrite.ai/mcp`. Keep the `oauth` block, which supplies the public client ID, scopes and registered local callback on port 8787. Run one sign-in at a time. Start Gemini in that project, enter `/mcp auth robowrite`, then try the read-only account check above. Sign-in through this Gemini setup still needs a live test. [Gemini CLI MCP setup](https://geminicli.com/docs/tools/mcp-server/)
+For Gemini CLI, open `.gemini/settings.json` in your own project. Under `mcpServers`, copy the `robowrite` entry from [the Gemini extension manifest](gemini-extension.json) and set its `httpUrl` to `https://mcp.robowrite.ai/mcp`. Keep the manifest’s `oauth` fields (`enabled`, `clientId`, `scopes` and `redirectUri`). RoboWrite advertises its issuer on `clerk.robowrite.ai`, and this public client returns to the registered local callback on port 8787. Run one sign-in at a time. Start Gemini in that project, enter `/mcp auth robowrite`, then try the read-only account check above. Sign-in through this Gemini setup still needs a live test. [Gemini CLI MCP setup](https://geminicli.com/docs/tools/mcp-server/)
 
 In VS Code, merge this entry into the `servers` object of your MCP configuration:
 
@@ -51,12 +51,14 @@ These examples configure the hosted address. Use the account check above to conf
 
 ## What the 0.2.3 package contains
 
+The bundled connection files and the Official MCP Registry entry for 0.2.3 still point to the retired address. For a working connection, use the [current setup instructions](https://www.robowrite.ai/guides/robowrite-mcp#connect).
+
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
 - Grok Build metadata in `.grok-plugin/plugin.json` pointing at URL-only `mcp.grok.json`.
 - Codex metadata in `.codex-plugin/plugin.json` pointing at URL-only `mcp.codex.json`, plus `.agents/plugins/marketplace.json`.
 - Gemini CLI extension metadata in `gemini-extension.json` (static public PKCE client, local callback port 8787).
-- Official MCP Registry metadata in `server.json`, published as [`ai.robowrite/mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=ai.robowrite/mcp). A registry row is not a marketplace listing.
+- Official MCP Registry metadata for `ai.robowrite/mcp` in `server.json`.
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
@@ -64,7 +66,7 @@ The [0.2.3 release notes and historical verification matrix](https://github.com/
 
 ## Find and resume work
 
-This version requires the hosted connector's inventory/recovery tools. After upgrading, refresh the client tool catalog and confirm `list_content`, `list_briefs`, `get_brief`, `get_content`, `list_jobs` and `get_topic_content` are available. If a tool is missing, check the server address and refresh the tool list before trying again.
+This version requires the hosted connector's inventory/recovery tools. After upgrading, refresh the client tool catalog and confirm `list_content`, `list_briefs`, `get_brief`, `get_content`, `list_jobs` and `get_topic_content` are available. If a tool is missing, check the server address and refresh the tool list. Recovering a saved draft uses read-only calls. Starting a new generation can consume allowance.
 
 Try these prompts:
 
@@ -94,7 +96,7 @@ CI validates every manifest on each pull request: JSON structure, one shared ver
 
 On 0.2.3, `python3 scripts/smoke_test.py` targets the retired endpoint identified above and reports HTTP 410 (Gone). [PR #23](https://github.com/RoboAdApp/robowrite-plugin/pull/23) tracks migration of the bundled configuration and smoke test. It is read-only and unauthenticated: it checks OAuth discovery, that unsigned `initialize` and `tools/list` succeed, that `tools/call` still returns 401 with an OAuth challenge, and that the static client and redirect URI in each manifest that ships one (`.mcp.json`, `mcp.json`, `gemini-extension.json`) reach the sign-in page. The URL-only Grok and Codex manifests have no client to check. A rejected client or redirect fails the build. Client ID Metadata Document support is reported as a warning if a known-good document is not accepted; `--strict` turns warnings into failures.
 
-To release, bump the version in all six files and merge to `main`. Nothing else is needed:
+The next release is held for the endpoint migration in PR #23, successful installation, signup and reconnect checks, and separate publication approval. The current 0.2.3 workflow works as follows:
 
 1. The release workflow runs on every push to `main` and reads the version from `server.json`.
 2. If that version is already in the registry and has a GitHub release, it stops. A merge that does not bump the version does not start a new release; it can still finish a half-published one.
