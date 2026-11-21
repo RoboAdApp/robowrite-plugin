@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "robowrite": {
+      "type": "http",
+      "url": "https://mcp.robowrite.ai/mcp",
+      "oauth": {
+        "clientId": "UDGKiiooDBzdYmDp",
+        "callbackPort": 8787,
+        "scopes": "robowrite:organizations:read robowrite:content:all_orgs offline_access"
+      }
+    }
+  }
+}
