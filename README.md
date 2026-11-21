@@ -1,10 +1,53 @@
 # RoboWrite
 
-Find and resume content work, or turn a website and reviewed brand voice into a content strategy, approved brief, and saved Markdown draft through RoboWrite's hosted MCP service.
+Plan SEO and GEO content using keyword research, competitor research, your brand voice and relevant material from your RoboWrite knowledge library. Work with briefs, recover saved Markdown drafts, and review sources from your chat client.
 
-Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
+## Connect to RoboWrite
 
-## What is included
+Use the hosted MCP server at `https://mcp.robowrite.ai/mcp` with Streamable HTTP and OAuth. Version 0.2.3 in this repository contains a retired server address. For a new connection, follow the current steps for your client in the [installation and usage guide](https://www.robowrite.ai/guides/robowrite-mcp#connect).
+
+| Client | Setup instructions |
+| --- | --- |
+| ChatGPT | [Connect in ChatGPT](https://www.robowrite.ai/guides/robowrite-mcp#chatgpt) |
+| Claude web or desktop | [Choose a connector or a plugin with skills](https://www.robowrite.ai/guides/robowrite-mcp#claude) |
+| Claude Code | [Set up Claude Code](https://www.robowrite.ai/guides/robowrite-mcp#claude-code) |
+| Codex | [Set up Codex](https://www.robowrite.ai/guides/robowrite-mcp#codex) |
+| Cursor | [Set up Cursor](https://www.robowrite.ai/guides/robowrite-mcp#cursor) |
+| Grok Build | [Set up Grok Build](https://www.robowrite.ai/guides/robowrite-mcp#grok-build) |
+
+Already connected? Check the address on your existing RoboWrite entry. If it uses the retired address, follow your client's migration steps in the guide. Sign in to RoboWrite and confirm the intended workspace before opening or changing content. Tools that start research or generation can use your allowance and incur charges when overages are enabled.
+
+Try this [first account check](https://www.robowrite.ai/guides/robowrite-mcp#first-task).
+
+> Use RoboWrite to check my connected account and tell me which workspace is selected. Make only the read-only account call.
+
+### Other clients with remote MCP support
+
+For a new GitHub Copilot CLI connection:
+
+```sh
+copilot mcp add --transport http robowrite https://mcp.robowrite.ai/mcp
+```
+
+In VS Code, merge this entry into the `servers` object of your MCP configuration:
+
+```json
+{
+  "robowrite": { "type": "http", "url": "https://mcp.robowrite.ai/mcp" }
+}
+```
+
+In Windsurf, merge this entry into the `mcpServers` object of your MCP configuration:
+
+```json
+{
+  "robowrite": { "serverUrl": "https://mcp.robowrite.ai/mcp" }
+}
+```
+
+These examples configure the hosted address. Use the account check above to confirm that sign-in works in your client.
+
+## What the 0.2.3 package contains
 
 - Cursor plugin metadata explicitly selects the remote MCP connection in `mcp.json`.
 - Claude Code plugin metadata and a remote MCP connection in `.mcp.json` (static public PKCE client, local callback port 8787).
@@ -15,125 +58,11 @@ Version 0.2.3 teaches the content workflow skill to review held content kits (v2
 - One shared [content workflow skill](skills/robowrite-content-ops/SKILL.md).
 - The RoboWrite product mark and [MIT license](LICENSE).
 
-The plugin connects to `https://www.robowrite.ai/api/mcp`. There is no local server to build or npm package to install.
-
-## Verification matrix
-
-| Client | Discovery | Browser sign-in | `get_account` | Saved draft |
-| --- | --- | --- | --- | --- |
-| Claude Code 2.1.263 via `--plugin-dir` | Verified | Verified | Verified | Not verified |
-| Cursor CLI project `.cursor/mcp.json` | Verified | Verified | Verified | Not verified |
-| Cursor CLI packaged `--plugin-dir` | Reaches requires-auth | Not verified | Not verified | Not verified |
-| Grok Build | Manifest added | Not verified | Not verified | Not verified |
-| ChatGPT / Codex | Manifest added | Not verified | Not verified | Not verified |
-| Gemini CLI | Manifest added | Not verified | Not verified | Not verified |
-| GitHub Copilot CLI 1.0.61 | Plugin and skill install verified; workspace `.mcp.json` parses | Not verified | Not verified | Not verified |
-| VS Code / Windsurf | Configuration documented | Not verified | Not verified | Not verified |
-
-## Connect
-
-You need a RoboWrite account, the intended organization, and available allowance for requested content generation. Generation starts real work, consumes allowance, and may incur usage charges when your account permits overages. Start with account discovery before requesting a draft.
-
-For Claude Code, from this plugin directory:
-
-```sh
-claude --plugin-dir .
-```
-
-Open `/mcp`, select the RoboWrite connection, and follow browser sign-in. The local callback uses port 8787; make sure another sign-in process is not using that port. Verify that `/robowrite:robowrite-content-ops` is available. This launch method is documented by [Claude Code](https://code.claude.com/docs/en/plugins#test-your-plugins-locally); Claude Code 2.1.263 sign-in and the read-only account check have been verified; the content workflow still requires verification.
-
-For Cursor CLI, load this plugin directory into the project you want to use:
-
-```sh
-cursor-agent --workspace /absolute/path/to/your-project --plugin-dir /absolute/path/to/robowrite-plugin
-```
-
-Open `/mcp list` to find `Robowrite (plugin)` and its authentication status. The `/robowrite-content-ops` skill should also appear in the command menu. Packaged discovery has been verified; completing browser authentication and the account call through this packaged path remains a separate pending check. Only one sign-in process can use the local callback port 8787 at a time.
-
-The Cursor manifest points explicitly to `mcp.json` so Cursor retains its static OAuth client configuration. In the tested Cursor CLI, automatic discovery selected Claude Code's `.mcp.json` first and reported that the auth server does not support dynamic client registration. Keep the client-specific files separate. The bundle follows the [Cursor plugin layout](https://cursor.com/docs/reference/plugins).
-
-The previously verified Cursor project setup is also available: merge the `robowrite` entry from `mcp.json` into your project's `.cursor/mcp.json`, preserving other entries, and copy `skills/robowrite-content-ops/` to that project's `.cursor/skills/`. Enable the server and complete browser sign-in.
-
-For Grok Build, from this plugin directory:
-
-```sh
-grok plugin install --trust .
-```
-
-Grok loads `mcp.grok.json` through `.grok-plugin/plugin.json`. That file is URL-only so Grok can run its own OAuth discovery. It does not embed the Claude/Cursor static client ID or callback port 8787. Hosted sign-in on Grok is not yet verified; if the auth server rejects dynamic registration, record that on the auth tracking issue rather than adding a static client here.
-
-For Codex CLI, add this repository as a marketplace and install `robowrite`. Codex OAuth against Clerk is not yet verified.
-
-For Gemini CLI:
-
-```sh
-gemini extensions install https://github.com/RoboAdApp/robowrite-plugin
-```
-
-Gemini CLI does not read Client ID Metadata Documents and falls back to dynamic client registration, which this service does not offer. `gemini-extension.json` therefore names the same static public client as Claude Code and Cursor. Gemini CLI only listens on the `/oauth/callback` path, so the redirect is `http://localhost:8787/oauth/callback`. Sign-in is not yet verified on Gemini CLI. Only one sign-in process can use port 8787 at a time.
-
-For GitHub Copilot CLI:
-
-```sh
-copilot plugin install RoboAdApp/robowrite-plugin
-```
-
-Copilot CLI 1.0.61 reads `.claude-plugin/plugin.json` and installs the skill. Run from a checkout of this repository, it also loads `.mcp.json` as a workspace server and maps the static client and callback port, with a notice that the nested `oauth` key is deprecated. Whether an installed plugin exposes its MCP server, and browser sign-in, remain unverified. To add the server directly: `copilot mcp add --transport http robowrite https://www.robowrite.ai/api/mcp`.
-
-For VS Code, add this to `.vscode/mcp.json` or your user MCP configuration. VS Code identifies itself with a Client ID Metadata Document. Clerk now accepts that document through to the sign-in page; completing browser sign-in and `get_account` still requires verification:
-
-```json
-{
-	"servers": {
-		"robowrite": {
-			"type": "http",
-			"url": "https://www.robowrite.ai/api/mcp"
-		}
-	}
-}
-```
-
-For Windsurf, add this to `~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-	"mcpServers": {
-		"robowrite": {
-			"serverUrl": "https://www.robowrite.ai/api/mcp"
-		}
-	}
-}
-```
-
-Use this first prompt:
-
-> Use RoboWrite to check the connected account and organization. Make only the read-only get_account call. Do not create or change anything.
-
-Check the returned organization before authorizing content changes. Keep the client's normal tool approval controls enabled. Credentials belong in browser sign-in, never in chat or these files. Reconnect to change organizations or recover from an expired or revoked grant.
-
-## Security and network
-
-This plugin contains no executable, hooks, install scripts, or environment-variable credentials.
-
-| Endpoint | Why |
-| --- | --- |
-| `https://www.robowrite.ai/api/mcp` | Hosted Streamable HTTP MCP. Every tool call goes here. |
-| `https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp` | Protected-resource metadata for OAuth discovery. |
-| Clerk issuer advertised in that metadata | Browser authorization-code + PKCE. The plugin does not store tokens. |
-
-Scopes requested by the Claude, Cursor, and Gemini configs: `user:org:read`, `robowrite:content`, `offline_access`. Publication is not requested. There are no delete or billing-management tools.
-
-Unauthenticated `initialize`, `ping`, and `tools/list` succeed so hosted clients can discover the connector. `tools/call` still returns 401 with an OAuth challenge until the user signs in.
-
-## Access and usage
-
-The connection can read and create content in the selected organization, change existing brand voice fields, and start research or generation. It is not restricted to one test brand. Offline access allows the client to renew its connection without repeating browser sign-in, subject to expiry and revocation.
-
-Publication access is not requested. This connector has no delete tools or billing-management tools. It also has no draft-edit tool, so locally revised text must not be described as a saved RoboWrite revision. The account's allowance and overage settings still apply; OAuth does not set a separate spending limit.
+The [0.2.3 release notes and historical verification matrix](https://github.com/RoboAdApp/robowrite-plugin/blob/v0.2.3/README.md#verification-matrix) document the original installation tests. The hosted service supplies the tool catalog. Bundled skills follow the plugin version installed in your client.
 
 ## Find and resume work
 
-This version requires the hosted connector's inventory/recovery tools. After upgrading, refresh the client tool catalog and confirm `list_content`, `list_briefs`, `get_brief`, `get_content`, `list_jobs` and `get_topic_content` are available. If they are missing, report that the hosted deployment has not caught up; do not replace a read with another generation request.
+This version requires the hosted connector's inventory/recovery tools. After upgrading, refresh the client tool catalog and confirm `list_content`, `list_briefs`, `get_brief`, `get_content`, `list_jobs` and `get_topic_content` are available. If a tool is missing, check the server address and refresh the tool list before trying again.
 
 Try these prompts:
 
