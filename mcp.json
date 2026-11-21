@@ -1,10 +1,10 @@
 {
 	"mcpServers": {
 		"robowrite": {
-			"url": "https://www.robowrite.ai/api/mcp",
+			"url": "https://mcp.robowrite.ai/mcp",
 			"auth": {
 				"CLIENT_ID": "UDGKiiooDBzdYmDp",
-				"scopes": ["user:org:read", "robowrite:content", "offline_access"]
+				"scopes": ["robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"]
 			}
 		}
 	}

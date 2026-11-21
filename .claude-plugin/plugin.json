@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
 		"email": "hello@robowrite.ai"
@@ -8,10 +8,22 @@
 	"homepage": "https://www.robowrite.ai",
 	"keywords": [
 		"robowrite",
-		"robowrite.ai",
-		"roboad"
+		"seo",
+		"geo",
+		"generative-engine-optimization",
+		"keyword-research",
+		"competitor-research",
+		"content-strategy",
+		"content-marketing",
+		"blog-writing",
+		"content-briefs",
+		"brand-voice",
+		"knowledge-base",
+		"retrieval-augmented-generation"
 	],
-	"version": "0.2.3",
+	"version": "0.3.4",
 	"license": "MIT",
-	"repository": "https://github.com/RoboAdApp/robowrite-plugin"
+	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
+	"privacyPolicyUrl": "https://www.robowrite.ai/privacy",
+	"icon": "./assets/robowrite-r.png"
 }

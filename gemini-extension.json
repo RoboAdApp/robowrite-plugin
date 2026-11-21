@@ -1,15 +1,15 @@
 {
 	"name": "robowrite",
-	"version": "0.2.3",
-	"description": "Find and resume content work, create reviewed briefs, and read saved Markdown drafts with RoboWrite.",
+	"version": "0.3.4",
+	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"mcpServers": {
 		"robowrite": {
-			"httpUrl": "https://www.robowrite.ai/api/mcp",
+			"httpUrl": "https://mcp.robowrite.ai/mcp",
 			"oauth": {
 				"enabled": true,
 				"clientId": "UDGKiiooDBzdYmDp",
 				"redirectUri": "http://localhost:8787/oauth/callback",
-				"scopes": ["user:org:read", "robowrite:content", "offline_access"]
+				"scopes": ["robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"]
 			}
 		}
 	}
