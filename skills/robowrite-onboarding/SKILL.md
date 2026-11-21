@@ -7,7 +7,15 @@ description: Guide a new RoboWrite user from signup or first connection to their
 
 Ask what the user wants to accomplish first, unless they already told you. A first useful result might be finding an existing brief, reading a brand voice, or outlining a first article in chat.
 
-**Connect and choose a workspace.** If the user needs an account, direct them to [RoboWrite](https://www.robowrite.ai/app) to sign up and create or join their workspace. Use the bundled `robowrite-setup` skill for browser sign-in, reconnect, and workspace selection. Keep credentials in the browser. Check which tools this client offers for the chosen task. A read-only connection can guide the user through manual setup in the web app. Confirm the workspace with a successful `get_account` before reading its content. For a multi-workspace connection, pass the confirmed `organization_id` on every subsequent call. An existing workspace-bound grant keeps its original target. If the user switches workspaces, verify the new account and clear the previous brand and setup IDs.
+**Connect and choose a workspace.** If the user needs an account, direct them to [RoboWrite](https://www.robowrite.ai/app) to sign up and create or join their workspace. Use the bundled `robowrite-setup` skill for browser sign-in, reconnect, and workspace selection. Keep credentials in the browser. If the user asks only for guidance, explain the steps without calling tools.
+
+**Verify the workspace before reading any of its content.** Use the RoboWrite connection bundled with the plugin the user invoked. Look up `get_account` and, for multi-workspace access, `list_organizations` by name. Use the client’s tool search if it loads tools on demand.
+
+- For multi-workspace access, page through `list_organizations`. Match the user’s stated target to an eligible entry, or ask which eligible workspace to use if the choice is unclear. If none are eligible, explain that and stop. Call `get_account` with the chosen entry’s `organization_id`. Include that ID on subsequent multi-workspace calls.
+- A confirmed workspace-bound grant keeps its original target. Call `get_account` without an ID. For either grant, continue only if the returned account matches the user’s intended workspace. On a mismatch, stop and explain which workspace the connection reached.
+- If a required tool cannot be found or a call fails, report the missing tool or returned error and stop before reading content. For an expired connection or `mcp_endpoint_moved`, use `robowrite-setup` on that same connection. Never substitute another installed RoboWrite connection.
+
+If the user switches workspaces, verify the new account and clear the previous brand and setup IDs. Check which tools the client offers for the chosen task. A read-only connection can guide the user through manual setup in the web app.
 
 **Start from what is already there.** Use the account’s brands and, if needed, page through `list_brands`. When several brands fit, ask which one to use. Read the selected brand with `get_brand`. Offer one read-only first task tied to the user’s goal, such as finding a saved brief or reviewing the brand voice. Use `robowrite-content-ops` when the user chooses an editorial task.
 
