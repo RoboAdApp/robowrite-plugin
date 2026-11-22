@@ -506,6 +506,10 @@ def static_clients() -> list[tuple[str, str, str, list[str]]]:
     for redirect_uri in ("http://localhost:8787/callback", "https://www.cursor.com/agents/mcp/oauth/callback"):
         found.append(("mcp.json", cursor["CLIENT_ID"], redirect_uri, cursor["scopes"]))
 
+    grok = json.loads((ROOT / "mcp.grok.json").read_text())["mcpServers"]["robowrite"]
+    # Grok chooses the port per sign-in. Exercise the port-independent loopback registration.
+    found.append(("mcp.grok.json", grok["oauth_client_id"], "http://127.0.0.1:51111/callback", grok["oauth_scopes"]))
+
     gemini = json.loads((ROOT / "gemini-extension.json").read_text())["mcpServers"]["robowrite"]["oauth"]
     found.append(("gemini-extension.json", gemini["clientId"], gemini["redirectUri"], gemini["scopes"]))
 
