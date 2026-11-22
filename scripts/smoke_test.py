@@ -507,8 +507,8 @@ def static_clients() -> list[tuple[str, str, str, list[str]]]:
         found.append(("mcp.json", cursor["CLIENT_ID"], redirect_uri, cursor["scopes"]))
 
     grok = json.loads((ROOT / "mcp.grok.json").read_text())["mcpServers"]["robowrite"]
-    # A registration pinned to one port would break the next native sign-in.
-    for port in (51111, 65004):
+    # Sample two distinct native ports for signed-out redirects. No listener is opened.
+    for port in secrets.SystemRandom().sample(range(49152, 65536), 2):
         found.append(("mcp.grok.json", grok["oauth_client_id"], f"http://127.0.0.1:{port}/callback", grok["oauth_scopes"]))
 
     gemini = json.loads((ROOT / "gemini-extension.json").read_text())["mcpServers"]["robowrite"]["oauth"]

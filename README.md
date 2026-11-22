@@ -76,9 +76,9 @@ The previously verified Cursor project setup is also available: merge the `robow
 
 **Grok Build.** From the RoboWrite plugin directory, run `grok plugin install .` and inspect the trust prompt. If you recognize the source and want to install it, run `grok plugin install --trust .`.
 
-Run `grok inspect --json` in the project where you use Grok. Look for the three skills, `robowrite-onboarding`, `robowrite-setup`, and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the hosted URL, public client ID and requested scopes through `mcp.grok.json`. Look for **RoboWrite MCP — Grok Build** on the consent screen.
+Run `grok inspect --json` in the project where you use Grok. Look for the three skills, `robowrite-onboarding`, `robowrite-setup`, and `robowrite-content-ops`, and the `robowrite` entry in `mcpServers`. Its `target` should be `https://mcp.robowrite.ai/mcp`. The plugin supplies the hosted URL, public client ID and requested scopes through `mcp.grok.json`.
 
-**Upgrading an existing Grok connection.** A manual server named `robowrite` can take precedence over the plugin even when its URL is current. Run `grok inspect --json` to see which source supplies the connection. For a manual entry, run `grok mcp list --json` to see its scope and OAuth settings. If the URL, client ID, or scopes differ from the example below, update those three values in the existing TOML section. For user scope, edit `~/.grok/config.toml`. For project scope, edit `.grok/config.toml` in that project.
+**Upgrading an existing Grok connection.** A manual server named `robowrite` can take precedence over the plugin even when its URL is current. In `grok inspect --json`, the entry’s `source.type` is `plugin` for the packaged connection or `configToml` for a TOML configuration. For a manual entry, run `grok mcp list --json` to see its scope and OAuth settings. If the URL, client ID, or scopes are missing or differ from the example below, set those values in the existing TOML section. For user scope, edit `~/.grok/config.toml`. For project scope, edit `.grok/config.toml` in that project.
 
 ```toml
 [mcp_servers.robowrite]
@@ -89,7 +89,7 @@ oauth_scopes = ["robowrite:organizations:read", "robowrite:content:all_orgs", "o
 
 Run `grok mcp list --json` again to verify all three values before signing in.
 
-In Grok Build, open `/mcps`, select RoboWrite and press `i` to start browser sign-in. After returning to Grok, ask it to check your RoboWrite account. If workspace selection is required, ask it to list your eligible workspaces, select one, and repeat the account check. Native RoboWrite sign-in and reconnect are still under test. [Grok Build MCP controls](https://docs.x.ai/build/features/mcp-servers) · [RoboWrite setup and usage guide](https://www.robowrite.ai/guides/robowrite-mcp)
+In Grok Build, open `/mcps`, select RoboWrite and press `i` to start browser sign-in. Look for **RoboWrite MCP — Grok Build** on the consent screen. After returning to Grok, ask it to check your RoboWrite account. If workspace selection is required, ask it to list your eligible workspaces, select one, and repeat the account check. Native RoboWrite sign-in and reconnect are still under test. [Grok Build MCP controls](https://docs.x.ai/build/features/mcp-servers) · [RoboWrite setup and usage guide](https://www.robowrite.ai/guides/robowrite-mcp)
 
 For Codex CLI, add this repository as a marketplace and install `robowrite`. Codex OAuth against Clerk is not yet verified.
 
