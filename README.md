@@ -29,7 +29,27 @@ For GitHub Copilot CLI, this command adds a user-level entry. Start Copilot in y
 copilot mcp add --transport http robowrite https://mcp.robowrite.ai/mcp
 ```
 
-For Gemini CLI, open `.gemini/settings.json` in your own project. Under `mcpServers`, copy the `robowrite` entry from [the Gemini extension manifest](gemini-extension.json) and set its `httpUrl` to `https://mcp.robowrite.ai/mcp`. Keep the manifest’s `oauth` fields (`enabled`, `clientId`, `scopes` and `redirectUri`). RoboWrite advertises its issuer on `clerk.robowrite.ai`, and this public client returns to the registered local callback on port 8787. Run one sign-in at a time. Start Gemini in that project, enter `/mcp auth robowrite`, then try the read-only account check above. Sign-in through this Gemini setup still needs a live test. [Gemini CLI MCP setup](https://geminicli.com/docs/tools/mcp-server/)
+For a new Gemini CLI connection, merge the following `robowrite` entry into your project’s `.gemini/settings.json`. Keep any other servers in `mcpServers`. This example uses the [multi-workspace Gemini configuration](https://github.com/RoboAdApp/robowrite-plugin/blob/a1be135ff97045e0949faef28229f989d213bdc4/gemini-extension.json).
+
+```json
+{
+  "mcpServers": {
+    "robowrite": {
+      "httpUrl": "https://mcp.robowrite.ai/mcp",
+      "oauth": {
+        "enabled": true,
+        "clientId": "UDGKiiooDBzdYmDp",
+        "redirectUri": "http://localhost:8787/oauth/callback",
+        "scopes": ["robowrite:organizations:read", "robowrite:content:all_orgs", "offline_access"]
+      }
+    }
+  }
+}
+```
+
+Start Gemini in that project and run `/mcp auth robowrite`. Consent lets Gemini list your eligible workspaces, read and manage content according to your role in workspaces you have access to now or join later, and stay connected between sessions. Run one sign-in at a time on port 8787, then try the read-only account check above. If RoboWrite asks for a workspace, choose one in chat and repeat the check.
+
+If you already have a working single-workspace connection, keep its settings. To opt into workspace switching, update its scopes to the list above and reconnect to grant access. End-to-end Gemini sign-in still needs a live test. [Gemini CLI MCP setup](https://geminicli.com/docs/tools/mcp-server/)
 
 In VS Code, merge this entry into the `servers` object of your MCP configuration:
 
