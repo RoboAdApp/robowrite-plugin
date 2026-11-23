@@ -6,7 +6,7 @@ Bring target keywords, competitor pages, source URLs, and knowledge-library docu
 
 Read the [RoboWrite MCP installation and usage manual](https://www.robowrite.ai/guides/robowrite-mcp) for the server URL, browser OAuth, client setup, first-task examples, and troubleshooting.
 
-Version 0.3.7 connects to `https://mcp.robowrite.ai/mcp`. If your existing connection already works at this address, keep using it after the plugin update. If you configured the retired `/api/mcp` address manually, update that entry where your client supports it and reconnect. The server requires an OAuth token issued for the exact new address. Adding access to other eligible workspaces can require fresh consent. The reviewed API/host deployment, provider consent, and native ChatGPT/Claude/Cursor selection, cancellation, return, update and reconnect acceptance must pass, and the public setup manual must be deployed, before this version is merged or released. Merging starts the release workflow; new MCP Registry publication waits for required owner approval on the protected `mcp-registry` environment. A merge is not publication approval, and it still updates the public Git source used by direct repository installs.
+Version 0.3.7 connects to `https://mcp.robowrite.ai/mcp`. If your existing connection already works at this address, keep using it after the plugin update. If you configured the retired `/api/mcp` address manually, update that entry where your client supports it and reconnect. The server requires an OAuth token issued for the exact new address. Adding access to other eligible workspaces can require fresh consent. Marketplace and directory listings update on their own schedules, so a listing can show an older version than this repository.
 
 The verification receipts below are historical, from the previous endpoint; they do not establish acceptance at the new URL. Version 0.2.3 teaches the content workflow skill to review held content kits (v2 article pipeline). Version 0.2.2 added a Gemini CLI extension manifest and connection notes for GitHub Copilot CLI, VS Code, and Windsurf. Version 0.2.1 added Grok Build, Codex, and Official MCP Registry manifests. Neither claims marketplace acceptance. Cursor CLI `2026.09.02-c22c1a3` sign-in and account access have been verified through project MCP configuration. Packaged plugin and skill discovery reach the authentication step in Cursor CLI `2026.09.10-fd3934a`; packaged sign-in/account access still require verification. Claude Code 2.1.263 sign-in, account access, plugin discovery, and skill discovery have also been verified. The complete saved-draft workflow still requires verification. The authorization server advertises Client ID Metadata Documents. After pre-registering the VS Code, Claude Code, Claude.ai, and ChatGPT metadata URLs in Clerk, those clients reach the hosted sign-in page; dynamic client registration stays off. End-to-end browser sign-in plus `get_account` on Grok Build and ChatGPT is not yet verified. Gemini CLI, Copilot, VS Code, and Windsurf sign-in are not yet verified. No plugin library listing or acceptance is claimed.
 
@@ -42,7 +42,7 @@ The plugin connects to `https://mcp.robowrite.ai/mcp`. There is no local server 
 
 You need a RoboWrite account, the intended organization, and available allowance for requested content generation. Generation starts real work, consumes allowance, and may incur usage charges when your account permits overages. Start with account discovery before requesting a draft.
 
-In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher after the 0.3.7 release reaches this repository’s default branch:
+In **Claude Code 2.1.275 or later**, install RoboWrite from its publisher:
 
 ```text
 /plugin install robowrite --marketplace RoboAdApp/robowrite-plugin
@@ -232,14 +232,31 @@ CI validates every manifest on each pull request: JSON structure, OpenAI listing
 
 CI also smoke-tests the hosted service with `python3 scripts/smoke_test.py`. It is read-only and unauthenticated: it checks OAuth discovery, that unsigned `initialize` and `tools/list` succeed, that `tools/call` still returns 401 with an OAuth challenge, and that the static client and redirect URI in each manifest that ships one (`.mcp.json`, `mcp.json`, `gemini-extension.json`) reach the sign-in page. The public catalog check accepts JSON or SSE responses, fails immediately on an invalid or repeated pagination cursor, and separately caps the walk at 100 pages. It requires the three read-only workspace tools used by new packaged connections, their explicit target and pagination arguments, optional string workspace targets on its required account/content tools (preserving pinned calls), and validates the required saved-draft tool names, edit payloads, section selection, version/replay fields, decision choices and rewrite idempotency without invoking those tools. Missing workspace tools fail this gate; public inventory still does not prove consent or native acceptance. It permits additional tools and optional fields rather than fixing a catalog count. A rejected static client fails the build. The smoke check also starts signed-out authorization for Codex desktop, ChatGPT web, and VS Code using their public client metadata URLs. It reports each result separately and stops at RoboWrite sign-in. Run `python3 scripts/smoke_test.py --strict` to fail on any client warning. Reconnect acceptance also requires a completed native login, a successful protected account read, and an existing-connection check.
 
-To prepare a release, bump the version in all six files and complete the acceptance and merge gates. Publication is a separate owner decision:
+### How changes reach users
+
+Pull requests target `main`. `main` is what direct repository installs receive, so every merge must leave the package installable and pass both CI checks. There is no long-lived release branch.
+
+A release is a pull request that bumps the version in all six files. Existing installations only pick up changes when the version changes, so batch user-facing changes into a version bump. Publication to each channel is a separate step with its own owner approval:
+
+| Channel | What it consumes | How it updates |
+| --- | --- | --- |
+| Official MCP Registry and directories that sync from it | `server.json` on `main` | The release workflow, after owner approval on the `mcp-registry` environment |
+| Direct repository installs (Claude Code, Codex, Cursor, Grok Build, Gemini CLI) | `main` | On merge; existing installs update on a version bump |
+| Claude Directory | The `claude-release` branch, exported with `scripts/claude_directory_tree.py` | Push the export as a child of the previous one, then publish the version manually in Anthropic’s portal. Keep auto-publish off |
+| ChatGPT and Codex directory | A ZIP built with `scripts/package_openai.py` | Upload in OpenAI’s portal |
+
+Track each channel’s submission, review and acceptance in its own issue, not in a pull request.
+
+### Release workflow
+
+To prepare a release, bump the version in all six files. Publication is a separate owner decision:
 
 1. The release workflow runs on every push to `main` and reads the version from `server.json`.
 2. If that version is already in the registry and has a GitHub release, it stops. A merge that does not bump the version does not start a new release; it can still finish a half-published one.
 3. It checks the registry and the GitHub release separately. If the registry lacks this version, its publish job waits for the required `mcp-registry` environment review. Only approve publication after the release acceptance gates pass. The approved job publishes `server.json` through DNS authentication for `robowrite.ai` and confirms the registry serves it.
 4. After a successful or skipped registry job, a missing `vX.Y.Z` tag and GitHub release are created on that commit. If the registry already has the version, this repair path does not enter the registry approval job. Do not treat the Registry gate as approval for every repair or for direct Git distribution; retain the owner's separate release decision before a merge or re-run that would complete a partial release.
 
-A failed run does not publish a Registry version twice. Before re-running it, check what remains and obtain the applicable release approval. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment, which requires owner review, permits only `main` and has admin bypass disabled; its public half is a TXT record on the `robowrite.ai` apex. Verify those environment protections before publication. No workflow approval is granted by merging this candidate.
+A failed run does not publish a Registry version twice. Before re-running it, check what remains and obtain the applicable release approval. The signing key lives in the `MCP_REGISTRY_PRIVATE_KEY` secret on the `mcp-registry` environment, which requires owner review, permits only `main` and has admin bypass disabled; its public half is a TXT record on the `robowrite.ai` apex. Verify those environment protections before publication. Merging a release grants no workflow approval.
 
 ## License and support
 
