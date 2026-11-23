@@ -67,8 +67,9 @@ jobs:
             echo "v${version} is already published and released. Merging releases nothing." >> "$GITHUB_STEP_SUMMARY"
           else
             {
-              echo "Merging to main will:"
-              [ "$published" = true ] || echo "- publish v${version} to the MCP Registry"
-              [ "$released" = true ] || echo "- create the v${version} tag and GitHub release"
+              echo "Merging to main starts the release workflow and updates public Git source. Remaining release actions:"
+              [ "$published" = true ] || echo "- MCP Registry v${version} publication waits for required owner approval on mcp-registry"
+              [ "$released" = true ] || echo "- create the v${version} tag and GitHub release after a successful or skipped Registry job"
+              echo "Retain acceptance and separate release approval: an already-published Registry version skips that environment review."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
