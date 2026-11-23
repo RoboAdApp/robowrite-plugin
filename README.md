@@ -10,7 +10,10 @@ Use RoboWrite to plan articles from keyword research and competitor insights, re
 
 ## Try it with your own content
 
-- **Get started.** “I’m new to RoboWrite. Help me choose my workspace and set up my first brand manually.”
+In Claude web, type `/robowrite` in the message box and select **robowrite-onboarding** for help with brand setup or recovery. In Claude Code, use `/robowrite:robowrite-onboarding`.
+
+- **Get started.** “How do I enter a brand manually, save it for free, and finish later?”
+- **Resume setup.** “I lost the original chat and only have my website setup job number. How can I resume the existing setup?”
 - **Recover a draft.** “Find our most recent saved draft about customer onboarding. Show me its title, version and the opening paragraph.” RoboWrite can reopen saved work without starting another writing job.
 - **Review research.** “Open the existing brief for our onboarding article. Which keywords, competitor pages and internal sources does it already include? Flag any gaps.”
 - **Plan an article.** “Use our brand voice and the attached product guide to propose an outline for the keyword ‘customer onboarding checklist’. Show me the plan before saving anything.”
