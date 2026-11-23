@@ -7,9 +7,9 @@
 	"websiteUrl": "https://www.robowrite.ai",
 	"icons": [
 		{
-			"src": "https://www.robowrite.ai/logos/robowrite-r.svg",
-			"mimeType": "image/svg+xml",
-			"sizes": ["any"]
+			"src": "https://www.robowrite.ai/icon.png",
+			"mimeType": "image/png",
+			"sizes": ["512x512"]
 		}
 	],
 	"repository": {
