@@ -1,6 +1,6 @@
 ---
 name: robowrite-onboarding
-description: Guide a new RoboWrite user from signup or first connection to their first brand and content task. Use when someone asks how to get started, onboard a workspace, or resume unfinished brand onboarding.
+description: Guide a new RoboWrite user from signup or first connection to their first brand and content task. Use when someone asks how to get started, onboard a workspace, or resume unfinished brand onboarding. Use it for manual brand setup, saving a brand to finish later, or picking up existing website research when the user has only a job number, lost the setup ID or original chat, or wants to avoid duplicate research.
 ---
 
 # Get started with RoboWrite
