@@ -3,13 +3,13 @@
 	"name": "ai.robowrite/mcp",
 	"title": "RoboWrite: SEO/GEO Content Research and Writing",
 	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
-	"version": "0.3.6",
+	"version": "0.3.7",
 	"websiteUrl": "https://www.robowrite.ai",
 	"icons": [
 		{
-			"src": "https://www.robowrite.ai/logos/robowrite-r.svg",
-			"mimeType": "image/svg+xml",
-			"sizes": ["any"]
+			"src": "https://www.robowrite.ai/icon.png",
+			"mimeType": "image/png",
+			"sizes": ["512x512"]
 		}
 	],
 	"repository": {

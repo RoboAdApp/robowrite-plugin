@@ -14,7 +14,7 @@ import validate_manifests as vm
 
 PACKAGE_FILES = (
     ".codex-plugin/plugin.json", "LICENSE", "README.md",
-    "assets/robowrite-r.png", "assets/robowrite-r.svg", vm.OPENAI_MCP_FILE,
+    "assets/robowrite-r.png", vm.OPENAI_MCP_FILE,
     "skills/robowrite-content-ops/SKILL.md", "skills/robowrite-setup/SKILL.md",
     "skills/robowrite-onboarding/SKILL.md",
 )

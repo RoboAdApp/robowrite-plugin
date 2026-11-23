@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"version": "0.3.6",
+	"version": "0.3.7",
 	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
@@ -36,7 +36,7 @@
 		"websiteURL": "https://www.robowrite.ai",
 		"privacyPolicyURL": "https://www.robowrite.ai/privacy",
 		"supportURL": "https://www.robowrite.ai/contact",
-		"logo": "./assets/robowrite-r.svg",
+		"logo": "./assets/robowrite-r.png",
 		"defaultPrompt": [
 			"Plan SEO/GEO blog topics from my saved keyword strategy and brand voice. Ask before new research or generation.",
 			"Prepare a brief from my target keyword, competitor pages, and library documents. Show the plan before saving.",
@@ -53,7 +53,7 @@
 			"Saved draft recovery"
 		],
 		"termsOfServiceURL": "https://www.robowrite.ai/terms",
-		"composerIcon": "./assets/robowrite-r.svg"
+		"composerIcon": "./assets/robowrite-r.png"
 	},
 	"extensions": {
 		"com.openai": {
