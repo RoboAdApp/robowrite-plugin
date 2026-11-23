@@ -34,14 +34,14 @@ class FetchTransport(unittest.TestCase):
 
     def test_urlerror_returns_transport_result_instead_of_raising(self) -> None:
         with mock.patch.object(sm, "OPENER", BoomOpener(urllib.error.URLError("dns failed"))):
-            status, headers, body = sm.fetch("https://www.robowrite.ai/api/mcp")
+            status, headers, body = sm.fetch("https://mcp.robowrite.ai/mcp")
         self.assertEqual(status, 0)
         self.assertEqual(headers, {})
         self.assertIn("dns failed", body)
 
     def test_timeout_returns_transport_result_instead_of_raising(self) -> None:
         with mock.patch.object(sm, "OPENER", BoomOpener(TimeoutError("timed out"))):
-            status, _, body = sm.fetch("https://www.robowrite.ai/api/mcp")
+            status, _, body = sm.fetch("https://mcp.robowrite.ai/mcp")
         self.assertEqual(status, 0)
         self.assertIn("timed out", body)
 
