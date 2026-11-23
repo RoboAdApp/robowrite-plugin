@@ -1,5 +1,6 @@
 {
 	"name": "robowrite",
+	"displayName": "RoboWrite",
 	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"author": {
 		"name": "M Powered Ventures",
@@ -21,7 +22,7 @@
 		"knowledge-base",
 		"retrieval-augmented-generation"
 	],
-	"version": "0.3.6",
+	"version": "0.3.7",
 	"license": "MIT",
 	"repository": "https://github.com/RoboAdApp/robowrite-plugin",
 	"privacyPolicyUrl": "https://www.robowrite.ai/privacy",
