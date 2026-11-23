@@ -21,8 +21,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MCP_URL = "https://www.robowrite.ai/api/mcp"
-RESOURCE_METADATA_URL = "https://www.robowrite.ai/.well-known/oauth-protected-resource/api/mcp"
+MCP_URL = "https://mcp.robowrite.ai/mcp"
+RESOURCE_METADATA_URL = "https://mcp.robowrite.ai/.well-known/oauth-protected-resource/mcp"
 TIMEOUT = 20
 USER_AGENT = "robowrite-plugin-smoke/1"
 
@@ -257,7 +257,7 @@ def check_metadata_document_clients(metadata: dict) -> None:
         return
     client_id, redirect_uri = CIMD_PROBE
     outcome, detail = authorize_outcome(
-        metadata["authorization_endpoint"], client_id, redirect_uri, ["user:org:read", "offline_access"]
+        metadata["authorization_endpoint"], client_id, redirect_uri, ["robowrite:organizations:read", "offline_access"]
     )
     if outcome == "accepted":
         ok("Client ID Metadata Document clients reach sign-in")

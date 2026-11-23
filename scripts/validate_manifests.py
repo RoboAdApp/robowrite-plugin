@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MCP_URL = "https://www.robowrite.ai/api/mcp"
+MCP_URL = "https://mcp.robowrite.ai/mcp"
 # Clients name the remote endpoint differently (Gemini CLI uses `httpUrl`).
 MCP_URL_KEYS = ("url", "httpUrl", "serverUrl")
 REGISTRY_NAME = "ai.robowrite/mcp"
@@ -80,7 +80,7 @@ def walk(node, relative: str, trail: str = "") -> None:
                 key in MCP_URL_KEYS
                 and isinstance(value, str)
                 and value != MCP_URL
-                and (here.startswith("mcpServers.") or "/api/mcp" in value)
+                and (here.startswith("mcpServers.") or "/mcp" in value)
             ):
                 fail(f"{relative}: `{here}` is {value}, expected {MCP_URL}")
             walk(value, relative, here)
