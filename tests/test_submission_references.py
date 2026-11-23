@@ -1,6 +1,7 @@
 """Exercise the release entry points with broken references in a package copy."""
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -9,6 +10,19 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class GrokManualInstallation(unittest.TestCase):
+    @unittest.skipUnless(sys.version_info >= (3, 11), "requires standard-library TOML parser")
+    def test_documented_toml_matches_the_packaged_connection(self):
+        import tomllib
+
+        readme = (ROOT / "README.md").read_text()
+        example, = re.findall(r"^```toml\n(\[mcp_servers\.robowrite\]\n.*?)^```$", readme, re.M | re.S)
+        documented = tomllib.loads(example)["mcp_servers"]["robowrite"]
+        packaged = json.loads((ROOT / "mcp.grok.json").read_text())["mcpServers"]["robowrite"]
+        for key in ("url", "oauth_client_id", "oauth_scopes"):
+            self.assertEqual(documented[key], packaged[key])
 
 
 class SubmissionReferences(unittest.TestCase):

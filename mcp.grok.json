@@ -2,7 +2,13 @@
 	"mcpServers": {
 		"robowrite": {
 			"type": "http",
-			"url": "https://mcp.robowrite.ai/mcp"
+			"url": "https://mcp.robowrite.ai/mcp",
+			"oauth_client_id": "xBQaK2dLPZm4RU5F",
+			"oauth_scopes": [
+				"robowrite:organizations:read",
+				"robowrite:content:all_orgs",
+				"offline_access"
+			]
 		}
 	}
 }
