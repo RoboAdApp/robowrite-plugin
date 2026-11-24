@@ -1,9 +1,10 @@
 name: Release
 
-# Runs on every push to main. For the version in server.json, it publishes to
-# the Official MCP Registry if the registry lacks it, then creates the vX.Y.Z
-# tag and GitHub release if they are missing. A push without a version bump,
-# once that version is fully released, is a no-op.
+# Runs on every push to main. For the version in server.json, it first verifies
+# the live connector and managed-client sign-in, then publishes to the Official
+# MCP Registry if the registry lacks it, then creates the vX.Y.Z tag and GitHub
+# release if they are missing. A push without a version bump, once that version
+# is fully released, is a no-op.
 on:
   push:
     branches: [main]
@@ -64,9 +65,31 @@ jobs:
             while IFS= read -r line; do echo "    ${line}"; done <<<"$state"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Publication is gated on the live connector and managed clients, not just a
+  # local version bump. A local version change proves only that the files agree;
+  # these checks verify the hosted service still serves the promised contracts
+  # and that each managed-client OAuth configuration reaches sign-in.
+  release-gate:
+    name: Verify live manifest and managed-client sign-in
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Every versioned manifest must agree on the version being released.
+      - name: Validate shipped manifests and version consistency
+        run: python3 scripts/validate_manifests.py
+
+      # Strict mode fails on warnings too, so an unverified client cannot be
+      # published silently.
+      - name: Verify the live connector and managed-client sign-in
+        run: python3 scripts/smoke_test.py --strict
+
   publish-registry:
     name: Publish to MCP Registry
-    needs: detect
+    needs: [detect, release-gate]
     if: needs.detect.outputs.published == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
