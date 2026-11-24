@@ -1,6 +1,6 @@
 {
 	"name": "robowrite",
-	"version": "0.3.7",
+	"version": "0.3.8",
 	"description": "SEO/GEO content grounded in keyword research, competitor insights, brand voice, and knowledge.",
 	"mcpServers": {
 		"robowrite": {
